@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight } from 'lucide-react';
+import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock } from 'lucide-react';
 
 // Premium Gradient Palette for Dynamic Cards
 const PREMIUM_GRADIENTS = [
@@ -12,14 +12,30 @@ const PREMIUM_GRADIENTS = [
   'bg-gradient-to-br from-cyan-800 via-blue-900 to-slate-950'
 ];
 
-// Rebuilt, High-Precision Professional Logos
+// Network Logo Component with /assets/ support & clean fallbacks
 const CardNetworkLogo = ({ network }) => {
-  switch (network?.toLowerCase()) {
+  const [imgError, setImgError] = useState(false);
+  const networkName = network?.toLowerCase();
+
+  // Try loading from public/assets/ first
+  if (!imgError && ['visa', 'mastercard', 'rupay', 'amex'].includes(networkName)) {
+    return (
+      <img 
+        src={`/assets/${networkName}.png`} 
+        alt={networkName}
+        className="h-6 md:h-7 w-auto object-contain drop-shadow-xl"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  // Polished Fallback UI if images are missing
+  switch (networkName) {
     case 'visa':
       return (
-        <svg viewBox="0 0 100 32" className="h-5 w-auto drop-shadow-lg" xmlns="http://www.w3.org/2000/svg">
-          <path d="M37.1 3.2l-3.3 22.3h-5.2l3.3-22.3h5.2zm21.6 0l-4.1 14.2-.2-1.1c-.7-3.4-3.8-13.1-3.8-13.1h-5.4l-.1.4c0 0 10.6 25.4 11.2 25.4h5.4l8.1-25.8h-11.1zm22.5 0c-1.1 0-2 .7-2.4 1.7l-8.4 20.6h5.4l1.1-3.1h6.6l.6 3.1h4.8l-4.2-22.3h-3.5zm-2.1 14.8l2.5-7.1 1.4 7.1h-3.9zm-63.8-14.8l-5.1 14.8-.5-2.7c-.9-4.7-4.8-12.1-4.8-12.1H0l.1.5c4.1 1 8.6 5.6 11.4 11l6.1 16.2h5.5l9.2-25.4h-6.8z" fill="#FFFFFF" />
-        </svg>
+        <div className="flex items-center text-white italic font-black text-xl tracking-tighter drop-shadow-lg">
+          VISA
+        </div>
       );
     case 'mastercard':
       return (
@@ -31,18 +47,14 @@ const CardNetworkLogo = ({ network }) => {
       );
     case 'amex':
       return (
-        <div className="bg-[#016fcf] px-2 py-1 rounded shadow-lg border border-white/30 flex items-center justify-center">
-          <span className="text-[10px] font-black tracking-tighter text-white uppercase leading-none italic">AMEX</span>
+        <div className="bg-[#016fcf] px-2 py-0.5 rounded border border-white/30 shadow-lg">
+          <span className="text-[10px] font-black tracking-tighter text-white uppercase italic">AMEX</span>
         </div>
       );
     case 'rupay':
       return (
-        <div className="flex items-center gap-1.5 drop-shadow-xl">
-          <svg viewBox="0 0 100 40" className="h-6 w-auto" xmlns="http://www.w3.org/2000/svg">
-            <path d="M15 5h18c6 0 10 3 10 9s-4 9-10 9h-10l-2 12h-8l5-30zm13 10c2 0 3-1 3-2.5s-1-2.5-3-2.5h-8l-1 5h9zM48 5h9l-5 30h-9l5-30zM68 5h18c6 0 10 3 10 9s-4 9-10 9H74l-2 12h-8l4-30z" fill="white" />
-            <path d="M85 5l-10 12h8l6-12z" fill="#FF9933" />
-            <path d="M78 15l-10 12h8l6-12z" fill="#138808" />
-          </svg>
+        <div className="flex items-center gap-1 drop-shadow-xl text-white font-black italic text-lg">
+          RuPay<span className="text-orange-500 font-bold not-italic">❯</span>
         </div>
       );
     default:
@@ -51,11 +63,9 @@ const CardNetworkLogo = ({ network }) => {
 };
 
 const INITIAL_PORTFOLIO = [
-  { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, feeTarget: 40000, bg: PREMIUM_GRADIENTS[0], image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=600&auto=format', network: 'amex' },
+  { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, bg: PREMIUM_GRADIENTS[0], image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=600&auto=format', network: 'amex' },
   { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[1], image: 'https://images.unsplash.com/photo-1639322537504-6427a16b0a28?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[2], image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format', network: 'mastercard' },
-  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: PREMIUM_GRADIENTS[3], image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, feeTarget: 200000, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' }
+  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' }
 ];
 
 const formatInr = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -76,7 +86,11 @@ const getDates = (stmtDay, dueDay) => {
   if (dueDay < stmtDay) nextDue.setMonth(nextDue.getMonth() + 1);
   const daysToStmt = Math.ceil((nextStmt - today) / (1000 * 60 * 60 * 24));
   const daysToDue = Math.ceil((nextDue - today) / (1000 * 60 * 60 * 24));
-  return { nextStmt: nextStmt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), nextDue: nextDue.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), daysToStmt, daysToDue };
+  return { 
+    stmt: nextStmt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), 
+    due: nextDue.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), 
+    daysToStmt, daysToDue 
+  };
 };
 
 export default function App() {
@@ -140,7 +154,6 @@ export default function App() {
           const cardNum = String(row.card);
           const amount = Number(row.amount);
           const txDate = new Date(row.date);
-          
           const cardInfo = (data.settings?.GLOBAL_PORTFOLIO ? JSON.parse(data.settings.GLOBAL_PORTFOLIO.portfolio) : portfolio).find(c => c.last4 === cardNum);
           if (cardInfo) {
             const lastStmt = getLastStatementDate(cardInfo.stmtDate);
@@ -154,7 +167,6 @@ export default function App() {
         setCardSpends(currentSpends);
         setIsLoading(false);
       } catch (error) {
-        console.error("Fetch error:", error);
         setIsLoading(false);
       }
     };
@@ -183,8 +195,8 @@ export default function App() {
     const newId = `card_${Date.now()}`;
     const newCard = {
         id: newId,
-        name: 'Platinum Card',
-        bank: 'New Bank',
+        name: 'New Platinum',
+        bank: 'Bank Name',
         last4: '0000',
         limit: 100000,
         stmtDate: 1,
@@ -195,15 +207,6 @@ export default function App() {
     const updatedPortfolio = [...portfolio, newCard];
     setPortfolio(updatedPortfolio);
     syncPortfolio(updatedPortfolio);
-  };
-
-  const deleteCard = (id) => {
-    if (window.confirm("Permanently remove this card from vault?")) {
-        const updatedPortfolio = portfolio.filter(c => c.id !== id);
-        setPortfolio(updatedPortfolio);
-        syncPortfolio(updatedPortfolio);
-        setEditingCard(null);
-    }
   };
 
   const syncPortfolio = async (updatedPortfolio) => {
@@ -259,33 +262,28 @@ export default function App() {
   // Login View
   if (!isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4 selection:bg-indigo-500/30 relative overflow-hidden">
+      <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center p-4 selection:bg-indigo-500/30 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_-20%,_#312e81_0%,_transparent_50%)] opacity-40"></div>
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-indigo-600/10 rounded-full blur-[160px] pointer-events-none animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[160px] pointer-events-none animate-pulse delay-1000"></div>
-
-        <div className={`bg-white/5 backdrop-blur-3xl border border-white/10 p-10 md:p-14 rounded-[4rem] w-full max-w-sm shadow-[0_0_80px_rgba(0,0,0,0.5)] transition-all duration-500 relative z-10 ${pinError ? 'animate-shake border-rose-500/50' : ''}`}>
-          <div className="flex flex-col items-center mb-14">
-            <div className="w-20 h-20 bg-gradient-to-tr from-indigo-600 to-blue-400 rounded-[2rem] flex items-center justify-center shadow-[0_20px_40px_rgba(49,46,129,0.5)] mb-8 rotate-6 hover:rotate-0 transition-transform duration-500">
-              <ShieldCheck className="w-10 h-10 text-white" />
+        <div className={`bg-white/5 backdrop-blur-3xl border border-white/10 p-10 md:p-14 rounded-[3.5rem] w-full max-w-sm shadow-[0_0_80px_rgba(0,0,0,0.5)] transition-all duration-500 relative z-10 ${pinError ? 'animate-shake border-rose-500/50' : ''}`}>
+          <div className="flex flex-col items-center mb-14 text-center">
+            <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg mb-8">
+              <ShieldCheck className="w-8 h-8 text-white" />
             </div>
-            <h1 className="text-4xl font-black text-white tracking-tighter">VAULT</h1>
-            <p className="text-[10px] font-bold text-indigo-400 mt-2 tracking-[0.4em] uppercase">Encrypted Terminal</p>
+            <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-1">My Card Hub</h1>
+            <p className="text-[9px] font-bold text-indigo-400 tracking-[0.4em] uppercase">Vault Terminal</p>
           </div>
-
-          <div className="flex gap-6 justify-center mb-16">
+          <div className="flex gap-5 justify-center mb-12">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className={`w-3 h-3 rounded-full transition-all duration-500 border ${pin.length > i ? 'bg-white border-white scale-150 shadow-[0_0_25px_rgba(255,255,255,0.8)]' : 'bg-transparent border-white/20'}`} />
+              <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-500 border ${pin.length > i ? 'bg-white border-white scale-150 shadow-[0_0_20px_rgba(255,255,255,0.7)]' : 'bg-transparent border-white/20'}`} />
             ))}
           </div>
-
-          <div className="grid grid-cols-3 gap-6 max-w-[300px] mx-auto">
+          <div className="grid grid-cols-3 gap-5 max-w-[280px] mx-auto">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <button key={num} onClick={() => addPinNumber(String(num))} className="w-16 h-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white hover:bg-white/20 active:scale-90 transition-all backdrop-blur-md shadow-lg">{num}</button>
+              <button key={num} onClick={() => addPinNumber(String(num))} className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white hover:bg-white/10 active:scale-90 transition-all backdrop-blur-md">{num}</button>
             ))}
             <div className="w-16 h-16"></div>
-            <button onClick={() => addPinNumber('0')} className="w-16 h-16 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white hover:bg-white/20 active:scale-90 transition-all backdrop-blur-md shadow-lg">0</button>
-            <button onClick={() => setPin(pin.slice(0, -1))} className="w-16 h-16 rounded-3xl bg-white/5 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all"><Delete size={28} /></button>
+            <button onClick={() => addPinNumber('0')} className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white hover:bg-white/10 active:scale-90 transition-all backdrop-blur-md">0</button>
+            <button onClick={() => setPin(pin.slice(0, -1))} className="w-16 h-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all"><Delete size={24} /></button>
           </div>
         </div>
         <style dangerouslySetInnerHTML={{__html: `@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } } .animate-shake { animation: shake 0.4s ease-in-out; }`}} />
@@ -294,52 +292,48 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#05070a] text-gray-100 p-4 md:p-10 font-sans selection:bg-indigo-500/30">
-      <header className="max-w-7xl mx-auto mb-16">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-14">
+    <div className="min-h-screen bg-[#05070a] text-gray-100 p-4 md:p-10 font-sans selection:bg-indigo-500/30 overflow-x-hidden">
+      <header className="max-w-7xl mx-auto mb-10 md:mb-16">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-900/40">
-              <ShieldCheck className="text-white w-8 h-8" />
+              <ShieldCheck className="text-white w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-white tracking-tight leading-none uppercase">MyCardHub</h1>
-              <p className="text-gray-500 font-bold tracking-[0.2em] mt-2 uppercase text-[10px]">Portfolio Intelligence v2.0</p>
+              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none">My Card Hub</h1>
+              <p className="text-gray-500 font-bold tracking-[0.2em] mt-2 uppercase text-[9px]">Financial Control Unit</p>
             </div>
           </div>
-          <div className="flex gap-4 items-center">
-            <button onClick={addNewCard} className="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-6 py-4 rounded-[1.5rem] font-black transition-all flex items-center gap-2 text-xs uppercase tracking-widest">
-               <Plus className="w-4 h-4 text-indigo-400" /> New Card
+          <div className="flex gap-4 items-center w-full md:w-auto">
+            <button onClick={addNewCard} className="flex-1 md:flex-none bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest">
+               <Plus size={16} className="text-indigo-400" /> Add Card
             </button>
-            <button onClick={() => window.location.reload()} disabled={isLoading} className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-8 py-4 rounded-[1.5rem] font-black transition-all flex items-center gap-2 shadow-[0_20px_40px_rgba(79,70,229,0.3)] text-xs uppercase tracking-widest">
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />} Sync Engine
+            <button onClick={() => window.location.reload()} disabled={isLoading} className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-7 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 shadow-lg text-[10px] uppercase tracking-widest">
+                {isLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />} Sync
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
-            <div className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mb-4">Available Credit</div>
-            <div className="text-5xl font-black text-white tracking-tighter">{formatInr(totalLimit)}</div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden">
+            <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3">Available Line</div>
+            <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{formatInr(totalLimit)}</div>
           </div>
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
-            <div className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2"><TrendingUp className="w-3 h-3 text-rose-500" /> Total Debt</div>
-            <div className="text-5xl font-black text-white tracking-tighter">{isLoading ? '...' : formatInr(totalSpent)}</div>
-            <div className="absolute bottom-0 left-0 h-1.5 bg-white/5 w-full"><div className="h-full bg-gradient-to-r from-rose-500 to-indigo-500 transition-all duration-1000 shadow-[0_0_15px_rgba(244,63,94,0.4)]" style={{ width: `${(totalSpent/totalLimit)*100}%` }}></div></div>
+          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden">
+            <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center gap-2"><TrendingUp size={12} className="text-rose-500" /> Net Debt</div>
+            <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{isLoading ? '...' : formatInr(totalSpent)}</div>
+            <div className="absolute bottom-0 left-0 h-1 bg-white/5 w-full"><div className="h-full bg-gradient-to-r from-rose-500 to-indigo-500 transition-all duration-1000 shadow-[0_0_15px_rgba(244,63,94,0.4)]" style={{ width: `${(totalSpent/totalLimit)*100}%` }}></div></div>
           </div>
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group text-center md:text-left">
-            <div className="text-gray-500 text-[10px] font-black uppercase tracking-[0.3em] mb-4 flex items-center justify-center md:justify-start gap-2"><PieChart className="w-3 h-3 text-emerald-500" /> Utilization</div>
-            <div className="text-5xl font-black text-white tracking-tighter">{isLoading ? '...' : `${((totalSpent / totalLimit) * 100).toFixed(1)}%`}</div>
-            <div className="flex items-center justify-center md:justify-start gap-2 mt-4">
-               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-               <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest">Safe Zone (&lt;30%)</span>
-            </div>
+          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-center">
+            <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center gap-2"><PieChart size={12} className="text-emerald-500" /> Utilization</div>
+            <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{isLoading ? '...' : `${((totalSpent / totalLimit) * 100).toFixed(1)}%`}</div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12 pb-32">
-        <div className="lg:col-span-2 space-y-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 pb-32">
+        <div className="lg:col-span-2 space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {portfolio.map(card => {
               const fetchedSpend = cardSpends[card.last4] || 0;
               const config = customConfig[card.last4] || {};
@@ -348,62 +342,59 @@ export default function App() {
               const util = Math.min(100, (spent / activeLimit) * 100);
               const dates = getDates(card.stmtDate, card.dueDate);
               const cardEmis = config.emis || [];
-              const monthlyEmiTotal = cardEmis.reduce((sum, e) => sum + Number(e.amount), 0);
+              const monthlyEmiTotal = cardEmis.reduce((sum, e) => sum + Number(e.emiAmount || 0), 0);
 
               return (
-                <div key={card.id} className="group relative bg-[#0c1017] border border-white/5 rounded-[3rem] p-3 overflow-hidden transition-all hover:border-indigo-500/30 hover:shadow-[0_40px_80px_rgba(0,0,0,0.4)] hover:-translate-y-2">
-                  <div className={`relative h-56 rounded-[2.5rem] p-9 flex flex-col justify-between overflow-hidden ${card.bg} shadow-2xl`}>
-                    {/* Gloss Overlay */}
+                <div key={card.id} className="group relative bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-2 transition-all hover:border-indigo-500/20">
+                  <div className={`relative h-52 rounded-[2rem] p-7 flex flex-col justify-between overflow-hidden ${card.bg} shadow-2xl`}>
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none"></div>
-                    {card.image && <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay group-hover:scale-110 transition-transform duration-[2s]" style={{ backgroundImage: `url('${card.image}')` }}></div>}
-                    
+                    {card.image && <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" style={{ backgroundImage: `url('${card.image}')` }}></div>}
                     <div className="flex justify-between items-start z-10">
                       <div>
-                        <div className="text-white font-black tracking-tight text-xl drop-shadow-xl uppercase">{card.bank}</div>
-                        <div className="text-white/60 text-[10px] font-bold tracking-[0.2em] uppercase mt-1">{card.name}</div>
+                        <div className="text-white font-black tracking-tight text-lg drop-shadow-xl uppercase truncate w-32">{card.bank}</div>
+                        <div className="text-white/80 text-[9px] font-bold tracking-[0.2em] uppercase mt-1 truncate w-32">{card.name}</div>
                       </div>
                       <div className="z-20 drop-shadow-2xl">
                         <CardNetworkLogo network={card.network} />
                       </div>
                     </div>
-
                     <div className="z-10 flex justify-between items-end">
-                      <div className="font-mono text-2xl tracking-[0.3em] text-white flex gap-4 drop-shadow-2xl font-black">
-                        <span className="opacity-40 tracking-normal">••••</span><span>{card.last4}</span>
+                      <div className="font-mono text-xl md:text-2xl tracking-[0.3em] text-white flex gap-3 drop-shadow-2xl font-black">
+                        <span className="opacity-40">••••</span><span>{card.last4}</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-9 space-y-8 relative">
-                    <button onClick={() => openEditModal(card)} className="absolute top-4 right-6 p-3 text-gray-600 hover:text-white hover:bg-white/5 rounded-2xl transition-all z-20">
-                      <Settings className="w-5 h-5" />
+                  <div className="p-7 space-y-6 relative">
+                    <button onClick={() => openEditModal(card)} className="absolute top-4 right-6 p-2.5 text-gray-600 hover:text-white hover:bg-white/5 rounded-xl transition-all z-20">
+                      <Settings size={18} />
                     </button>
-                    
                     <div className="flex justify-between items-end">
                       <div>
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em] mb-2">Portfolio Share</div>
-                        <div className={`text-3xl font-black ${spent < 0 ? 'text-emerald-400' : 'text-white'} tracking-tighter`}>{isLoading ? '...' : formatInr(spent)}</div>
+                        <div className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Live Spend</div>
+                        <div className={`text-2xl font-black ${spent < 0 ? 'text-emerald-400' : 'text-white'} tracking-tighter`}>{isLoading ? '...' : formatInr(spent)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[10px] text-gray-500 uppercase font-black tracking-[0.2em] mb-2">Installments</div>
-                        <div className="text-xl font-black text-amber-400 tracking-tighter">{formatInr(monthlyEmiTotal)}</div>
+                        <div className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Monthly Installments</div>
+                        <div className="text-lg font-black text-amber-400 tracking-tighter">{formatInr(monthlyEmiTotal)}</div>
                       </div>
                     </div>
-
-                    <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden shadow-inner">
-                      <div className={`h-full rounded-full transition-all duration-1000 ${util > 30 ? 'bg-amber-500' : 'bg-indigo-600'} shadow-[0_0_15px_rgba(79,70,229,0.4)]`} style={{ width: `${util}%` }}></div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full transition-all duration-1000 ${util > 30 ? 'bg-amber-500' : 'bg-indigo-600'}`} style={{ width: `${util}%` }}></div>
                     </div>
-
-                    <div className="flex items-center justify-between pt-6 border-t border-white/5">
-                      <div className="flex items-center gap-2">
-                        <div className="p-1.5 bg-white/5 rounded-lg"><Calendar className="w-3.5 h-3.5 text-gray-400" /></div>
-                        <div className="text-[10px] font-black uppercase tracking-widest text-gray-500">Stmt: <span className="text-white ml-1">{dates.nextStmt}</span></div>
-                      </div>
-                      {cardEmis.length > 0 && (
-                        <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[9px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-2">
-                          <Zap className="w-3 h-3 fill-amber-500" /> {cardEmis.length} ACTIVE LOANS
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Statement</span>
+                        <div className="flex items-center gap-1.5 text-[10px] font-black text-white">
+                           <Calendar size={10} className="text-indigo-400" /> {dates.stmt}
                         </div>
-                      )}
+                      </div>
+                      <div className="flex flex-col gap-1 text-right">
+                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Payment Due</span>
+                        <div className={`flex items-center justify-end gap-1.5 text-[10px] font-black ${dates.daysToDue <= 7 ? 'text-rose-500' : 'text-white'}`}>
+                           {dates.due} <Clock size={10} />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -412,30 +403,30 @@ export default function App() {
           </div>
         </div>
 
-        <div className="space-y-12">
-          <div className="bg-[#0c1017] border border-white/5 rounded-[3rem] p-10 shadow-2xl relative overflow-hidden">
-            <h2 className="text-xl font-black flex items-center gap-3 mb-10 uppercase tracking-tighter text-white">
-              <RefreshCcw className="w-5 h-5 text-indigo-500" /> Activity Hub
+        <div className="space-y-10">
+          <div className="bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl">
+            <h2 className="text-lg font-black flex items-center gap-3 mb-8 uppercase tracking-tighter text-white">
+              <RefreshCcw size={18} className="text-indigo-500" /> Activity Hub
             </h2>
             {isLoading ? (
-              <div className="flex justify-center items-center py-20"><Loader2 className="w-10 h-10 text-indigo-600 animate-spin" /></div>
+              <div className="flex justify-center items-center py-20"><Loader2 size={32} className="text-indigo-600 animate-spin" /></div>
             ) : (
-              <div className="space-y-6 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                 {transactions.map((tx, idx) => {
                   const cardInfo = portfolio.find(c => c.last4 === tx.card);
                   const isCredit = tx.amount < 0;
                   return (
-                    <div key={idx} className="flex justify-between items-center p-5 rounded-[2rem] bg-white/[0.02] border border-white/5 hover:border-indigo-500/40 hover:bg-white/[0.04] transition-all group">
-                      <div className="flex gap-5 items-center">
-                        <div className={`w-12 h-12 shrink-0 rounded-2xl flex items-center justify-center ${cardInfo?.bg || 'bg-gray-800'} text-white text-[10px] font-black shadow-2xl relative overflow-hidden ring-1 ring-white/10`}>
+                    <div key={idx} className="flex justify-between items-center p-4 rounded-2xl bg-white/[0.02] border border-white/5 group">
+                      <div className="flex gap-4 items-center overflow-hidden">
+                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${cardInfo?.bg || 'bg-gray-800'} text-white text-[9px] font-black shadow-2xl relative overflow-hidden ring-1 ring-white/10`}>
                           <span className="relative z-10">{tx.card}</span>
                         </div>
-                        <div>
-                          <div className="font-black text-white text-sm truncate w-28 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{tx.merchant}</div>
-                          <div className="text-[9px] font-bold text-gray-600 uppercase tracking-widest mt-1">{tx.date}</div>
+                        <div className="overflow-hidden">
+                          <div className="font-black text-white text-xs truncate w-24 group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{tx.merchant}</div>
+                          <div className="text-[8px] font-bold text-gray-600 uppercase mt-0.5 tracking-wider">{tx.date}</div>
                         </div>
                       </div>
-                      <div className={`font-black text-sm shrink-0 ${isCredit ? 'text-emerald-400' : 'text-rose-500'} tracking-tighter`}>{isCredit ? '+' : '-'}{formatInr(Math.abs(tx.amount))}</div>
+                      <div className={`font-black text-xs shrink-0 ${isCredit ? 'text-emerald-400' : 'text-rose-500'} tracking-tighter`}>{isCredit ? '+' : '-'}{formatInr(Math.abs(tx.amount))}</div>
                     </div>
                   );
                 })}
@@ -445,86 +436,116 @@ export default function App() {
         </div>
       </main>
 
-      {/* Premium Edit Modal */}
+      {/* Vault Config Modal */}
       {editingCard && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0c1017] border border-white/10 rounded-[4rem] w-full max-w-2xl shadow-[0_0_100px_rgba(0,0,0,0.8)] overflow-hidden my-auto flex flex-col transition-all duration-500">
-            <div className="p-10 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+          <div className="bg-[#0c1017] border border-white/10 rounded-[3rem] w-full max-w-2xl shadow-2xl my-auto flex flex-col transition-all">
+            <div className="p-8 border-b border-white/5 flex justify-between items-center">
               <div>
-                <h3 className="text-3xl font-black text-white uppercase tracking-tighter">Vault Config</h3>
-                <p className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mt-2">Adjusting: {editingCard.last4}</p>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Vault Protocol</h3>
+                <p className="text-[9px] font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Security Key: {editingCard.last4}</p>
               </div>
-              <button onClick={() => setEditingCard(null)} className="p-4 bg-white/5 rounded-[1.5rem] text-gray-500 hover:text-white transition-all"><X size={24}/></button>
+              <button onClick={() => setEditingCard(null)} className="p-3 bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"><X size={20}/></button>
             </div>
             
-            <div className="p-10 overflow-y-auto custom-scrollbar space-y-12 max-h-[65vh]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-8 overflow-y-auto custom-scrollbar space-y-10 max-h-[60vh]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Descriptor</label>
-                  <input value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-6 py-5 text-white font-black focus:border-indigo-500 transition-all outline-none uppercase text-sm" />
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Descriptor</label>
+                  <input value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Institution</label>
-                  <input value={editForm.bank} onChange={(e) => setEditForm({...editForm, bank: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-6 py-5 text-white font-black focus:border-indigo-500 transition-all outline-none uppercase text-sm" />
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Institution</label>
+                  <input value={editForm.bank} onChange={(e) => setEditForm({...editForm, bank: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Vault Key (Last 4)</label>
-                  <input value={editForm.last4} onChange={(e) => setEditForm({...editForm, last4: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-6 py-5 text-white font-black focus:border-indigo-500 transition-all outline-none text-sm" maxLength={4} />
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Protocol ID (Last 4)</label>
+                  <input value={editForm.last4} onChange={(e) => setEditForm({...editForm, last4: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" maxLength={4} />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Protocol (Network)</label>
-                  <select value={editForm.network} onChange={(e) => setEditForm({...editForm, network: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-6 py-5 text-white font-black focus:border-indigo-500 transition-all outline-none uppercase text-sm">
-                    <option value="visa">Visa Platinum</option>
-                    <option value="mastercard">Mastercard Elite</option>
-                    <option value="amex">Amex Centurion</option>
-                    <option value="rupay">RuPay Global</option>
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Network Logic</label>
+                  <select value={editForm.network} onChange={(e) => setEditForm({...editForm, network: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-[10px]">
+                    <option value="visa">Visa</option>
+                    <option value="mastercard">Mastercard</option>
+                    <option value="amex">Amex</option>
+                    <option value="rupay">RuPay</option>
                   </select>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Global Limit</label>
-                  <input type="number" value={editForm.limit} onChange={(e) => setEditForm({...editForm, limit: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-6 py-5 text-white font-black focus:border-indigo-500 transition-all outline-none text-sm" />
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Stmt Date</label>
+                  <input type="number" min="1" max="31" value={editForm.stmtDate} onChange={(e) => setEditForm({...editForm, stmtDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black text-center text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Manual Adjustment</label>
-                  <input type="number" value={editForm.balance} onChange={(e) => setEditForm({...editForm, balance: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-6 py-5 text-white font-black focus:border-indigo-500 transition-all outline-none text-sm" />
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Due Date</label>
+                  <input type="number" min="1" max="31" value={editForm.dueDate} onChange={(e) => setEditForm({...editForm, dueDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black text-center text-xs" />
                 </div>
               </div>
 
-              <div className="space-y-6 pt-8 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
+                <div>
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Credit Line</label>
+                  <input type="number" value={editForm.limit} onChange={(e) => setEditForm({...editForm, limit: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Manual Balance</label>
+                  <input type="number" value={editForm.balance} onChange={(e) => setEditForm({...editForm, balance: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" />
+                </div>
+              </div>
+
+              <div className="space-y-6 pt-6 border-t border-white/5">
                 <div className="flex justify-between items-center">
-                   <label className="block text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Active Installments</label>
-                   <button onClick={() => setEditForm({...editForm, emis: [...editForm.emis, { id: Date.now(), merchant: '', amount: 0, totalMonths: 12, remainingMonths: 12, rate: 0 }]})} className="px-6 py-3 bg-indigo-600 text-white rounded-[1.2rem] text-[9px] font-black uppercase tracking-widest hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-900/20">
-                     <Plus size={14}/> New EMI
+                   <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest">EMI Inventory</label>
+                   <button onClick={() => setEditForm({...editForm, emis: [...editForm.emis, { id: Date.now(), merchant: '', emiAmount: 0, totalLoanAmount: 0, interestRate: 0, tenureRemaining: 12 }]})} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg">
+                     <Plus size={12}/> New Loan
                    </button>
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-5">
                   {editForm.emis.map((emi) => (
-                    <div key={emi.id} className="p-8 bg-black/40 rounded-[2.5rem] border border-white/5 space-y-6 relative group">
-                      <button onClick={() => setEditForm({ ...editForm, emis: editForm.emis.filter(e => e.id !== emi.id) })} className="absolute top-6 right-6 text-gray-700 hover:text-rose-500 transition-colors"><Trash2 size={20}/></button>
-                      <div className="grid grid-cols-2 gap-6">
-                         <div className="col-span-2">
-                           <input placeholder="Merchant Name" value={emi.merchant} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, merchant: e.target.value} : item)})} className="w-full bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:border-white/20 transition-all" />
+                    <div key={emi.id} className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-5 relative">
+                      <button onClick={() => setEditForm({ ...editForm, emis: editForm.emis.filter(e => e.id !== emi.id) })} className="absolute top-4 right-4 text-gray-700 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                         <div className="col-span-1 md:col-span-2">
+                           <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Purchase</label>
+                           <input placeholder="e.g. iPhone 15 Pro" value={emi.merchant} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, merchant: e.target.value} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-xs font-black text-white outline-none" />
                          </div>
-                         <input placeholder="Amount (₹)" type="number" value={emi.amount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, amount: Number(e.target.value)} : item)})} className="bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:border-white/20 transition-all" />
-                         <input placeholder="Months Left" type="number" value={emi.remainingMonths} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, remainingMonths: Number(e.target.value)} : item)})} className="bg-white/5 border border-white/5 rounded-2xl px-5 py-4 text-xs font-bold text-white outline-none focus:border-white/20 transition-all" />
+                         <div className="grid grid-cols-2 gap-3">
+                           <div>
+                             <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Monthly EMI</label>
+                             <input type="number" value={emi.emiAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, emiAmount: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" />
+                           </div>
+                           <div>
+                             <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Principal</label>
+                             <input type="number" value={emi.totalLoanAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, totalLoanAmount: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" />
+                           </div>
+                         </div>
+                         <div className="grid grid-cols-2 gap-3">
+                           <div>
+                             <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Rate %</label>
+                             <input type="number" value={emi.interestRate} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, interestRate: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" />
+                           </div>
+                           <div>
+                             <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Months Left</label>
+                             <input type="number" value={emi.tenureRemaining} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, tenureRemaining: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" />
+                           </div>
+                         </div>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
 
-              <button onClick={() => deleteCard(editingCard.id)} className="w-full py-5 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 rounded-[2rem] text-[10px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-3 border border-rose-500/10">
-                  <Trash2 size={16} /> Purge from Portfolio
+              <button onClick={() => deleteCard(editingCard.id)} className="w-full py-4 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 rounded-2xl text-[9px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-2 border border-rose-500/10">
+                  <Trash2 size={14} /> Purge Terminal
               </button>
             </div>
             
-            <div className="p-10 bg-black/50 border-t border-white/5 flex gap-6">
-              <button disabled={isSaving} onClick={() => setEditingCard(null)} className="flex-1 py-5 rounded-[2rem] font-black text-gray-500 hover:text-white hover:bg-white/5 transition-all uppercase tracking-widest text-[10px]">Close</button>
-              <button disabled={isSaving} onClick={saveEdit} className="flex-[2] flex items-center justify-center gap-3 py-5 rounded-[2rem] font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-[0_20px_40px_rgba(79,70,229,0.3)] uppercase tracking-[0.2em] text-[10px]">
-                {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Synchronize'}
+            <div className="p-8 bg-black/50 border-t border-white/5 flex gap-4">
+              <button disabled={isSaving} onClick={() => setEditingCard(null)} className="flex-1 py-4 rounded-2xl font-black text-gray-500 hover:text-white transition-all uppercase text-[9px] tracking-widest">Discard</button>
+              <button disabled={isSaving} onClick={saveEdit} className="flex-[2] flex items-center justify-center gap-2 py-4 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-lg uppercase text-[9px] tracking-widest">
+                {isSaving ? <Loader2 size={14} className="animate-spin" /> : 'Synchronize'}
               </button>
             </div>
           </div>
@@ -532,11 +553,9 @@ export default function App() {
       )}
       
       <style dangerouslySetInnerHTML={{__html: `
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; } 
+        .custom-scrollbar::-webkit-scrollbar { width: 3px; } 
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } 
-        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.05); border-radius: 20px; } 
-        @keyframes spin-slow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } 
-        .animate-spin-slow { animation: spin-slow 12s linear infinite; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.05); border-radius: 10px; } 
       `}} />
     </div>
   );
