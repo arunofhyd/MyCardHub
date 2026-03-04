@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock, ArrowUpDown, GripVertical } from 'lucide-react';
 
 // Premium Gradient Palette for Dynamic Cards
 const PREMIUM_GRADIENTS = [
   'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-950',
   'bg-gradient-to-br from-gray-900 via-slate-800 to-slate-950',
-  'bg-gradient-to-br from-orange-600 via-red-700 to-black',
-  'bg-gradient-to-br from-amber-600 via-orange-800 to-stone-950',
+  'bg-gradient-to-br from-rose-900 via-red-900 to-black',
+  'bg-gradient-to-br from-amber-700 via-orange-800 to-stone-950',
   'bg-gradient-to-br from-red-700 via-rose-950 to-black',
   'bg-gradient-to-br from-zinc-800 to-black',
   'bg-gradient-to-br from-rose-800 via-red-950 to-black',
@@ -14,7 +14,7 @@ const PREMIUM_GRADIENTS = [
   'bg-gradient-to-br from-purple-700 via-indigo-950 to-black'
 ];
 
-// Rebuilt Professional Logos with /assets/ PNG support
+// Network Logo Component with /assets/ PNG support
 const CardNetworkLogo = ({ network }) => {
   const [imgError, setImgError] = useState(false);
   const networkName = network?.toLowerCase();
@@ -50,17 +50,10 @@ const CardNetworkLogo = ({ network }) => {
   }
 };
 
-// RESTORED: Your original 9 cards
 const INITIAL_PORTFOLIO = [
   { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, bg: PREMIUM_GRADIENTS[0], image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=600&auto=format', network: 'amex' },
   { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[1], image: 'https://images.unsplash.com/photo-1639322537504-6427a16b0a28?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[2], image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format', network: 'mastercard' },
-  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: PREMIUM_GRADIENTS[3], image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' },
-  { id: 'onecard', name: 'OneCard BOB', bank: 'BOB', last4: '8697', limit: 300000, stmtDate: 18, dueDate: 4, bg: PREMIUM_GRADIENTS[5], image: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'mojo', name: 'Kotak Mojo', bank: 'Kotak Bank', last4: '8222', limit: 488000, stmtDate: 20, dueDate: 6, bg: PREMIUM_GRADIENTS[6], image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'tiger', name: 'IndusInd Tiger', bank: 'IndusInd Bank', last4: '6688', limit: 200000, stmtDate: 23, dueDate: 11, bg: PREMIUM_GRADIENTS[7], image: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'ixigo', name: 'AU ixigo', bank: 'AU Small Finance', last4: '1309', limit: 70000, stmtDate: 24, dueDate: 12, bg: PREMIUM_GRADIENTS[8], image: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=600&auto=format', network: 'visa' }
+  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' }
 ];
 
 const formatInr = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -100,6 +93,10 @@ export default function App() {
   const [customConfig, setCustomConfig] = useState({});
   const [editingCard, setEditingCard] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', bank: '', last4: '', limit: 0, balance: 0, emis: [], network: 'visa', stmtDate: 1, dueDate: 15 });
+  
+  // Sort State
+  const [sortMode, setSortMode] = useState('custom'); // 'alphabetical', 'usage', 'custom'
+  const [draggedIdx, setDraggedIdx] = useState(null);
 
   const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSZk7SCZwdrwokpnjoBREXLwxj3rYUv6mAz-4IJiZhqn7DFDIdftERkfptW1tbkqzy/exec";
 
@@ -155,6 +152,40 @@ export default function App() {
     };
     fetchLiveData();
   }, [isAuthenticated]);
+
+  // Derived sorted portfolio
+  const displayPortfolio = useMemo(() => {
+    let sorted = [...portfolio];
+    if (sortMode === 'alphabetical') {
+      sorted.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortMode === 'usage') {
+      sorted.sort((a, b) => (cardSpends[b.last4] || 0) - (cardSpends[a.last4] || 0));
+    }
+    return sorted;
+  }, [portfolio, sortMode, cardSpends]);
+
+  // Native Drag and Drop Logic
+  const onDragStart = (idx) => {
+    if (sortMode !== 'custom') return;
+    setDraggedIdx(idx);
+  };
+
+  const onDragOver = (e, idx) => {
+    e.preventDefault();
+    if (draggedIdx === null || draggedIdx === idx) return;
+    
+    const newPortfolio = [...portfolio];
+    const draggedItem = newPortfolio.splice(draggedIdx, 1)[0];
+    newPortfolio.splice(idx, 0, draggedItem);
+    
+    setPortfolio(newPortfolio);
+    setDraggedIdx(idx);
+  };
+
+  const onDragEnd = () => {
+    setDraggedIdx(null);
+    syncPortfolio(portfolio);
+  };
 
   const openEditModal = (card) => {
     const fetchedSpend = cardSpends[card.last4] || 0;
@@ -281,8 +312,31 @@ export default function App() {
 
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 pb-32">
         <div className="lg:col-span-2 space-y-8">
+          
+          {/* Sorting Controller */}
+          <div className="flex items-center justify-between px-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 flex items-center gap-2">
+               <ArrowUpDown size={14} /> View Order
+            </h2>
+            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
+              {[
+                { id: 'custom', label: 'Custom' },
+                { id: 'usage', label: 'Usage' },
+                { id: 'alphabetical', label: 'A-Z' }
+              ].map(mode => (
+                <button 
+                  key={mode.id}
+                  onClick={() => setSortMode(mode.id)}
+                  className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === mode.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                >
+                  {mode.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {portfolio.map(card => {
+            {displayPortfolio.map((card, index) => {
               const fetchedSpend = cardSpends[card.last4] || 0;
               const config = customConfig[card.last4] || {};
               const spent = fetchedSpend + (config.adjustment || 0);
@@ -293,7 +347,14 @@ export default function App() {
               const monthlyEmiTotal = cardEmis.reduce((sum, e) => sum + Number(e.emiAmount || 0), 0);
 
               return (
-                <div key={card.id} className="group relative bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-2 transition-all hover:border-indigo-500/20">
+                <div 
+                  key={card.id} 
+                  draggable={sortMode === 'custom'}
+                  onDragStart={() => onDragStart(index)}
+                  onDragOver={(e) => onDragOver(e, index)}
+                  onDragEnd={onDragEnd}
+                  className={`group relative bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-2 transition-all hover:border-indigo-500/20 ${draggedIdx === index ? 'opacity-20 scale-95' : 'opacity-100'} ${sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''}`}
+                >
                   <div className={`relative h-52 rounded-[2rem] p-7 flex flex-col justify-between overflow-hidden ${card.bg} shadow-2xl`}>
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none"></div>
                     {card.image && <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" style={{ backgroundImage: `url('${card.image}')` }}></div>}
@@ -310,6 +371,11 @@ export default function App() {
                       <div className="font-mono text-xl md:text-2xl tracking-[0.3em] text-white flex gap-3 drop-shadow-2xl font-black">
                         <span className="opacity-40">••••</span><span>{card.last4}</span>
                       </div>
+                      {sortMode === 'custom' && (
+                        <div className="p-2 bg-black/20 rounded-lg text-white/40 group-hover:text-white/80 transition-all">
+                           <GripVertical size={16} />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -421,14 +487,14 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
+              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5 text-center">
                 <div>
                   <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Stmt Date</label>
-                  <input type="number" min="1" max="31" value={editForm.stmtDate} onChange={(e) => setEditForm({...editForm, stmtDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black text-center text-xs" />
+                  <input type="number" min="1" max="31" value={editForm.stmtDate} onChange={(e) => setEditForm({...editForm, stmtDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-5 py-4 text-white font-black text-center text-xs" />
                 </div>
                 <div>
                   <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Due Date</label>
-                  <input type="number" min="1" max="31" value={editForm.dueDate} onChange={(e) => setEditForm({...editForm, dueDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black text-center text-xs" />
+                  <input type="number" min="1" max="31" value={editForm.dueDate} onChange={(e) => setEditForm({...editForm, dueDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-[1.5rem] px-5 py-4 text-white font-black text-center text-xs" />
                 </div>
               </div>
 
