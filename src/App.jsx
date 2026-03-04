@@ -1,18 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw } from 'lucide-react';
 
+// Network Logo Component for high-fidelity visuals
+const CardNetworkLogo = ({ network }) => {
+  switch (network?.toLowerCase()) {
+    case 'visa':
+      return (
+        <svg viewBox="0 0 48 48" className="h-8 w-auto fill-white opacity-90" xmlns="http://www.w3.org/2000/svg">
+          <path d="M18.814 31.432l2.946-11.898h4.717l-2.946 11.898h-4.717zm18.332-11.536c-.902-.346-2.316-.714-4.062-.714-4.462 0-7.608 2.375-7.632 5.782-.027 2.51 2.247 3.908 3.96 4.745 1.758.857 2.348 1.406 2.339 2.172-.016 1.173-1.407 1.71-2.706 1.71-1.812 0-2.783-.274-4.26-.921l-.598-.283-.637 3.961c1.07.493 3.051.921 5.106.941 4.747 0 7.84-2.348 7.873-5.979.023-1.993-1.188-3.511-3.791-4.762-1.578-.802-2.548-1.338-2.541-2.152.004-.741.824-1.5 2.611-1.5 1.48-.027 2.559.32 3.398.683l.406.19.637-3.882zm9.14 11.536L42.66 19.534h-3.64c-.84 0-1.468.243-1.824 1.096l-6.443 15.394 4.954.004.986-2.723h6.05l.571 2.719 4.372.008zm-5.711-6.603l-1.91 5.253h3.535l-1.625-5.253zM13.793 19.534H7.662C6.91 19.534 6.305 19.963 6 20.598l-7.058 16.784 4.954.004L4.882 34.4h6.055l.572 2.723h4.372l-2.088-17.591z"/>
+        </svg>
+      );
+    case 'mastercard':
+      return (
+        <svg viewBox="0 0 24 24" className="h-8 w-auto" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="7" cy="12" r="7" fill="#EB001B" />
+          <circle cx="17" cy="12" r="7" fill="#F79E1B" />
+          <path d="M12 17.5c1.7-1.4 2.7-3.5 2.7-5.5s-1-4.1-2.7-5.5c-1.7 1.4-2.7 3.5-2.7 5.5s1 4.1 2.7 5.5z" fill="#FF5F00" />
+        </svg>
+      );
+    case 'amex':
+      return (
+        <div className="bg-white/10 p-1 rounded-sm border border-white/20">
+          <div className="bg-[#016fcf] text-white font-bold px-1.5 py-0.5 text-[10px] leading-tight tracking-tighter">AMERICAN<br/>EXPRESS</div>
+        </div>
+      );
+    case 'rupay':
+      return (
+        <div className="flex flex-col items-center">
+          <span className="italic font-black text-white text-lg leading-none tracking-tighter">RuPay<span className="text-orange-400">❯</span></span>
+        </div>
+      );
+    default:
+      return null;
+  }
+};
+
 // Hardcoded configurations based on user portfolio
-// Added premium abstract textures that blend with the card gradients
 const PORTFOLIO = [
-  { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, feeTarget: 40000, bg: 'bg-gradient-to-br from-blue-600 to-blue-900', image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=600', logo: 'AMEX' },
-  { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: 'bg-gradient-to-br from-indigo-800 to-blue-900', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600', logo: 'VISA' },
-  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: 'bg-gradient-to-br from-orange-500 to-red-600', image: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?auto=format&fit=crop&q=80&w=600', logo: 'MASTERCARD' },
-  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: 'bg-gradient-to-br from-amber-500 to-orange-700', image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=600', logo: 'VISA' },
-  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, feeTarget: 200000, bg: 'bg-gradient-to-br from-red-600 to-red-900', image: 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?auto=format&fit=crop&q=80&w=600', logo: 'MASTERCARD' },
-  { id: 'onecard', name: 'OneCard BOB', bank: 'BOB', last4: '8697', limit: 300000, stmtDate: 18, dueDate: 4, bg: 'bg-gradient-to-br from-gray-800 to-black', image: 'https://images.unsplash.com/photo-1600607688969-a5bfcd64bd40?auto=format&fit=crop&q=80&w=600', logo: 'VISA' },
-  { id: 'mojo', name: 'Kotak Mojo', bank: 'Kotak Bank', last4: '8222', limit: 488000, stmtDate: 20, dueDate: 6, bg: 'bg-gradient-to-br from-red-700 to-rose-900', image: 'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?auto=format&fit=crop&q=80&w=600', logo: 'VISA' },
-  { id: 'tiger', name: 'IndusInd Tiger', bank: 'IndusInd Bank', last4: '6688', limit: 200000, stmtDate: 23, dueDate: 11, bg: 'bg-gradient-to-br from-yellow-700 to-amber-900', image: 'https://images.unsplash.com/photo-1557682260-96773eb01377?auto=format&fit=crop&q=80&w=600', logo: 'VISA' },
-  { id: 'ixigo', name: 'AU ixigo', bank: 'AU Small Finance', last4: '1309', limit: 70000, stmtDate: 24, dueDate: 12, bg: 'bg-gradient-to-br from-purple-600 to-purple-900', image: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=600', logo: 'VISA' }
+  { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, feeTarget: 40000, bg: 'bg-gradient-to-br from-blue-600 to-blue-900', image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?auto=format&fit=crop&q=80&w=600', network: 'amex' },
+  { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: 'bg-gradient-to-br from-indigo-800 to-blue-900', image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=600', network: 'visa' },
+  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: 'bg-gradient-to-br from-orange-500 to-red-600', image: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?auto=format&fit=crop&q=80&w=600', network: 'mastercard' },
+  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: 'bg-gradient-to-br from-amber-500 to-orange-700', image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?auto=format&fit=crop&q=80&w=600', network: 'visa' },
+  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, feeTarget: 200000, bg: 'bg-gradient-to-br from-red-600 to-red-900', image: 'https://images.unsplash.com/photo-1614850523459-c2f4c699c52e?auto=format&fit=crop&q=80&w=600', network: 'mastercard' },
+  { id: 'onecard', name: 'OneCard BOB', bank: 'BOB', last4: '8697', limit: 300000, stmtDate: 18, dueDate: 4, bg: 'bg-gradient-to-br from-gray-800 to-black', image: 'https://images.unsplash.com/photo-1600607688969-a5bfcd64bd40?auto=format&fit=crop&q=80&w=600', network: 'visa' },
+  { id: 'mojo', name: 'Kotak Mojo', bank: 'Kotak Bank', last4: '8222', limit: 488000, stmtDate: 20, dueDate: 6, bg: 'bg-gradient-to-br from-red-700 to-rose-900', image: 'https://images.unsplash.com/photo-1557682224-5b8590cd9ec5?auto=format&fit=crop&q=80&w=600', network: 'visa' },
+  { id: 'tiger', name: 'IndusInd Tiger', bank: 'IndusInd Bank', last4: '6688', limit: 200000, stmtDate: 23, dueDate: 11, bg: 'bg-gradient-to-br from-yellow-700 to-amber-900', image: 'https://images.unsplash.com/photo-1557682260-96773eb01377?auto=format&fit=crop&q=80&w=600', network: 'visa' },
+  { id: 'ixigo', name: 'AU ixigo', bank: 'AU Small Finance', last4: '1309', limit: 70000, stmtDate: 24, dueDate: 12, bg: 'bg-gradient-to-br from-purple-600 to-purple-900', image: 'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=600', network: 'visa' }
 ];
 
 const formatInr = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -74,14 +107,14 @@ export default function App() {
 
   // Handle PIN Logic
   const handlePinChange = (e) => {
-    const val = e.target.value.replace(/[^0-9]/g, ''); // Only allow numbers
+    const val = e.target.value.replace(/[^0-9]/g, ''); 
     if (val.length <= 4) {
       setPin(val);
       if (val === '4421') {
         setTimeout(() => {
           sessionStorage.setItem('mycardhub_unlocked', 'true');
           setIsAuthenticated(true);
-        }, 300); // Tiny delay for a smooth transition
+        }, 300);
       } else if (val.length === 4) {
         setPinError(true);
         setTimeout(() => {
@@ -98,7 +131,7 @@ export default function App() {
 
     const fetchLiveData = async () => {
       try {
-        if (GOOGLE_APPS_SCRIPT_URL === "YOUR_NEW_WEB_APP_URL_HERE") {
+        if (GOOGLE_APPS_SCRIPT_URL === "YOUR_NEW_WEB_APP_URL_HERE" || !GOOGLE_APPS_SCRIPT_URL) {
           console.warn("API URL not set. Loading Mock Data instead.");
           setCardSpends({ '2000': 12500, '1697': 45000, '2569': 28000, '2002': 1500, '8559': 14000, '8697': 0, '8222': 5000, '6688': 2000, '1309': 8500 });
           setTransactions([
@@ -199,7 +232,6 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center p-4 selection:bg-indigo-500/30 relative overflow-hidden">
-        {/* Abstract Background Orbs */}
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[100px] pointer-events-none"></div>
 
@@ -213,15 +245,12 @@ export default function App() {
           </div>
 
           <div className="flex gap-4 justify-center relative mb-8">
-            {/* The 4 Dots indicating PIN entry */}
             {[...Array(4)].map((_, i) => (
               <div 
                 key={i} 
                 className={`w-4 h-4 rounded-full transition-all duration-300 ${pin.length > i ? 'bg-indigo-400 scale-125 shadow-[0_0_15px_rgba(129,140,248,0.5)]' : 'bg-gray-800'}`} 
               />
             ))}
-            
-            {/* Invisible Input capturing typing */}
             <input 
               type="tel" 
               maxLength={4} 
@@ -327,21 +356,23 @@ export default function App() {
                     {/* Fading Premium Card Image Texture */}
                     {card.image && (
                       <div 
-                        className="absolute inset-0 bg-cover bg-center mix-blend-overlay opacity-20 group-hover:opacity-40 transition-opacity duration-700 pointer-events-none" 
+                        className="absolute inset-0 bg-cover bg-center mix-blend-soft-light opacity-30 group-hover:opacity-50 transition-opacity duration-700 pointer-events-none" 
                         style={{ backgroundImage: `url('${card.image}')` }}
                       ></div>
                     )}
                     
-                    {/* Dark gradient overlay to ensure text is always readable */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent pointer-events-none"></div>
+                    {/* Subtle Overlay to pop the logos/text */}
+                    <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/5 pointer-events-none"></div>
                     
                     <div className="flex justify-between items-start z-10">
-                      <div className="text-white/80 font-medium tracking-wider text-sm drop-shadow-md">{card.bank}</div>
-                      <div className="font-bold text-white/90 italic tracking-widest drop-shadow-md">{card.logo}</div>
+                      <div className="text-white font-bold tracking-wider text-sm drop-shadow-lg">{card.bank}</div>
+                      <div className="z-20 drop-shadow-xl">
+                        <CardNetworkLogo network={card.network} />
+                      </div>
                     </div>
                     <div className="z-10 mt-auto mb-2">
-                      <div className="text-white/70 text-xs mb-1 uppercase tracking-widest">Card Number</div>
-                      <div className="font-mono text-xl tracking-widest text-white flex gap-3 drop-shadow-md">
+                      <div className="text-white/80 text-[10px] mb-1 uppercase tracking-[0.2em] font-medium drop-shadow-md">Card Number</div>
+                      <div className="font-mono text-xl tracking-[0.2em] text-white flex gap-3 drop-shadow-xl font-bold">
                         <span>••••</span><span>••••</span><span>••••</span><span>{card.last4}</span>
                       </div>
                     </div>
@@ -391,12 +422,12 @@ export default function App() {
 
                     {card.feeTarget && (
                       <div className="pt-2">
-                        <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                          <span>Fee Waiver Progress</span>
-                          <span>{formatInr(Math.max(card.feeTarget - Math.max(0, spent), 0))} to go</span>
+                        <div className="flex justify-between text-[10px] text-gray-400 mb-1 font-medium">
+                          <span className="flex items-center gap-1"><Zap className="w-3 h-3 text-indigo-400" /> Fee Waiver Progress</span>
+                          <span>{formatInr(Math.max(card.feeTarget - Math.max(0, spent), 0))} left</span>
                         </div>
                         <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
-                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000" style={{ width: `${Math.min((Math.max(0, spent)/card.feeTarget)*100, 100)}%` }}></div>
+                          <div className="h-full bg-indigo-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(99,102,241,0.5)]" style={{ width: `${Math.min((Math.max(0, spent)/card.feeTarget)*100, 100)}%` }}></div>
                         </div>
                       </div>
                     )}
@@ -429,7 +460,7 @@ export default function App() {
                       <div className="flex gap-3 items-center">
                         <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center ${cardInfo?.bg || 'bg-gray-700'} text-white text-xs font-bold shadow-lg overflow-hidden relative`}>
                           {cardInfo?.image && (
-                            <div className="absolute inset-0 bg-cover bg-center mix-blend-overlay opacity-40" style={{ backgroundImage: `url('${cardInfo.image}')` }}></div>
+                            <div className="absolute inset-0 bg-cover bg-center mix-blend-soft-light opacity-50" style={{ backgroundImage: `url('${cardInfo.image}')` }}></div>
                           )}
                           <span className="relative z-10">{tx.card}</span>
                         </div>
