@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock, ArrowUpDown, GripVertical } from 'lucide-react';
+import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock, ArrowUpDown, GripVertical, Eye, EyeOff } from 'lucide-react';
 
 // Premium Gradient Palette for Dynamic Cards
 const PREMIUM_GRADIENTS = [
@@ -102,6 +102,8 @@ export default function App() {
   const [editForm, setEditForm] = useState({ name: '', bank: '', last4: '', limit: 0, balance: 0, emis: [], network: 'visa', stmtDate: 1, dueDate: 15 });
   
   const [sortMode, setSortMode] = useState('custom');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [showSortMenu, setShowSortMenu] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState(null);
 
   const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSZk7SCZwdrwokpnjoBREXLwxj3rYUv6mAz-4IJiZhqn7DFDIdftERkfptW1tbkqzy/exec";
@@ -196,10 +198,23 @@ export default function App() {
 
   const displayPortfolio = useMemo(() => {
     let sorted = [...portfolio];
-    if (sortMode === 'alphabetical') sorted.sort((a, b) => a.name.localeCompare(b.name));
-    else if (sortMode === 'usage') sorted.sort((a, b) => (cardSpends[b.last4] || 0) - (cardSpends[a.last4] || 0));
+
+    if (sortMode === 'alphabetical') {
+      sorted.sort((a, b) => sortDirection === 'asc' ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name));
+    } else if (sortMode === 'usage') {
+      sorted.sort((a, b) => {
+        const diff = (cardSpends[b.last4] || 0) - (cardSpends[a.last4] || 0);
+        return sortDirection === 'desc' ? diff : -diff;
+      });
+    } else if (sortMode === 'date') {
+      sorted.sort((a, b) => {
+        const diff = a.stmtDate - b.stmtDate;
+        return sortDirection === 'asc' ? diff : -diff;
+      });
+    }
+
     return sorted;
-  }, [portfolio, sortMode, cardSpends]);
+  }, [portfolio, sortMode, sortDirection, cardSpends]);
 
   const onDragStart = (idx) => sortMode === 'custom' && setDraggedIdx(idx);
   const onDragOver = (e, idx) => {
@@ -345,15 +360,38 @@ export default function App() {
       <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-10 pb-32">
         <div className="lg:col-span-2 space-y-8">
           
-          <div className="flex items-center justify-between px-2">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-2 gap-4">
             <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 flex items-center gap-2">
                <ArrowUpDown size={14} /> View Order
+               <button onClick={() => setShowSortMenu(!showSortMenu)} className="ml-2 hover:text-white transition-colors">
+                 {showSortMenu ? <EyeOff size={16} /> : <Eye size={16} />}
+               </button>
             </h2>
-            <div className="flex bg-white/5 p-1 rounded-xl border border-white/5">
-              {[{ id: 'custom', label: 'Custom' }, { id: 'usage', label: 'Usage' }, { id: 'alphabetical', label: 'A-Z' }].map(mode => (
-                <button key={mode.id} onClick={() => setSortMode(mode.id)} className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === mode.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}>{mode.label}</button>
-              ))}
-            </div>
+            {showSortMenu && (
+              <div className="flex flex-wrap bg-white/5 p-1 rounded-xl border border-white/5">
+                {[{ id: 'custom', label: 'Custom' }, { id: 'usage', label: 'Usage' }, { id: 'date', label: 'Date' }, { id: 'alphabetical', label: 'A-Z' }].map(mode => (
+                  <button
+                    key={mode.id}
+                    onClick={() => {
+                      if (sortMode === mode.id && mode.id !== 'custom') {
+                        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+                      } else {
+                        setSortMode(mode.id);
+                        if (mode.id === 'date') setSortDirection('asc');
+                        else if (mode.id === 'usage') setSortDirection('desc');
+                        else if (mode.id === 'alphabetical') setSortDirection('asc');
+                      }
+                    }}
+                    className={`px-4 py-1.5 flex items-center gap-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === mode.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                  >
+                    {mode.label}
+                    {sortMode === mode.id && mode.id !== 'custom' && (
+                      <ArrowUpDown size={10} className={sortDirection === 'asc' ? 'rotate-180' : ''} />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -469,7 +507,7 @@ export default function App() {
               </div>
               <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
                 <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Credit Line</label><input type="number" value={editForm.limit} onChange={(e) => setEditForm({...editForm, limit: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" /></div>
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Outstanding Balance</label><input type="number" value={editForm.balance} onChange={(e) => setEditForm({...editForm, balance: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" /></div>
+                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Outstanding Bal / Live Spend</label><input type="number" value={editForm.balance} onChange={(e) => setEditForm({...editForm, balance: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" /></div>
               </div>
               <div className="space-y-6 pt-6 border-t border-white/5">
                 <div className="flex justify-between items-center"><label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest">EMI Inventory</label><button onClick={() => setEditForm({...editForm, emis: [...editForm.emis, { id: Date.now(), merchant: '', emiAmount: 0, totalLoanAmount: 0, interestRate: 0, tenureRemaining: 12 }]})} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg"><Plus size={12}/> New Loan</button></div>
