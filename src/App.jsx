@@ -5,38 +5,34 @@ import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, S
 const PREMIUM_GRADIENTS = [
   'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-950',
   'bg-gradient-to-br from-gray-900 via-slate-800 to-slate-950',
-  'bg-gradient-to-br from-rose-900 via-red-900 to-black',
-  'bg-gradient-to-br from-amber-700 via-orange-800 to-stone-950',
-  'bg-gradient-to-br from-emerald-900 via-teal-950 to-black',
-  'bg-gradient-to-br from-purple-900 via-indigo-950 to-black',
-  'bg-gradient-to-br from-cyan-800 via-blue-900 to-slate-950'
+  'bg-gradient-to-br from-orange-600 via-red-700 to-black',
+  'bg-gradient-to-br from-amber-600 via-orange-800 to-stone-950',
+  'bg-gradient-to-br from-red-700 via-rose-950 to-black',
+  'bg-gradient-to-br from-zinc-800 to-black',
+  'bg-gradient-to-br from-rose-800 via-red-950 to-black',
+  'bg-gradient-to-br from-yellow-700 via-amber-950 to-black',
+  'bg-gradient-to-br from-purple-700 via-indigo-950 to-black'
 ];
 
-// Network Logo Component with /assets/ support & clean fallbacks
+// Rebuilt Professional Logos with /assets/ PNG support
 const CardNetworkLogo = ({ network }) => {
   const [imgError, setImgError] = useState(false);
   const networkName = network?.toLowerCase();
 
-  // Try loading from public/assets/ first
   if (!imgError && ['visa', 'mastercard', 'rupay', 'amex'].includes(networkName)) {
     return (
       <img 
         src={`/assets/${networkName}.png`} 
         alt={networkName}
-        className="h-6 md:h-7 w-auto object-contain drop-shadow-xl"
+        className="h-5 md:h-7 w-auto object-contain drop-shadow-xl"
         onError={() => setImgError(true)}
       />
     );
   }
 
-  // Polished Fallback UI if images are missing
   switch (networkName) {
     case 'visa':
-      return (
-        <div className="flex items-center text-white italic font-black text-xl tracking-tighter drop-shadow-lg">
-          VISA
-        </div>
-      );
+      return <div className="text-white italic font-black text-xl tracking-tighter drop-shadow-lg">VISA</div>;
     case 'mastercard':
       return (
         <svg viewBox="0 0 24 24" className="h-8 w-auto drop-shadow-md" xmlns="http://www.w3.org/2000/svg">
@@ -46,26 +42,25 @@ const CardNetworkLogo = ({ network }) => {
         </svg>
       );
     case 'amex':
-      return (
-        <div className="bg-[#016fcf] px-2 py-0.5 rounded border border-white/30 shadow-lg">
-          <span className="text-[10px] font-black tracking-tighter text-white uppercase italic">AMEX</span>
-        </div>
-      );
+      return <div className="bg-[#016fcf] px-2 py-0.5 rounded border border-white/30 shadow-lg text-[10px] font-black tracking-tighter text-white uppercase italic">AMEX</div>;
     case 'rupay':
-      return (
-        <div className="flex items-center gap-1 drop-shadow-xl text-white font-black italic text-lg">
-          RuPay<span className="text-orange-500 font-bold not-italic">❯</span>
-        </div>
-      );
+      return <div className="text-white font-black italic text-lg drop-shadow-lg">RuPay<span className="text-orange-500 font-bold not-italic">❯</span></div>;
     default:
       return <CardIcon className="text-white/40" size={20} />;
   }
 };
 
+// RESTORED: Your original 9 cards
 const INITIAL_PORTFOLIO = [
   { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, bg: PREMIUM_GRADIENTS[0], image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=600&auto=format', network: 'amex' },
   { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[1], image: 'https://images.unsplash.com/photo-1639322537504-6427a16b0a28?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' }
+  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[2], image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format', network: 'mastercard' },
+  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: PREMIUM_GRADIENTS[3], image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=600&auto=format', network: 'visa' },
+  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' },
+  { id: 'onecard', name: 'OneCard BOB', bank: 'BOB', last4: '8697', limit: 300000, stmtDate: 18, dueDate: 4, bg: PREMIUM_GRADIENTS[5], image: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=600&auto=format', network: 'visa' },
+  { id: 'mojo', name: 'Kotak Mojo', bank: 'Kotak Bank', last4: '8222', limit: 488000, stmtDate: 20, dueDate: 6, bg: PREMIUM_GRADIENTS[6], image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=600&auto=format', network: 'visa' },
+  { id: 'tiger', name: 'IndusInd Tiger', bank: 'IndusInd Bank', last4: '6688', limit: 200000, stmtDate: 23, dueDate: 11, bg: PREMIUM_GRADIENTS[7], image: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=600&auto=format', network: 'visa' },
+  { id: 'ixigo', name: 'AU ixigo', bank: 'AU Small Finance', last4: '1309', limit: 70000, stmtDate: 24, dueDate: 12, bg: PREMIUM_GRADIENTS[8], image: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=600&auto=format', network: 'visa' }
 ];
 
 const formatInr = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
@@ -101,10 +96,8 @@ export default function App() {
   const [cardSpends, setCardSpends] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  
   const [portfolio, setPortfolio] = useState(INITIAL_PORTFOLIO);
   const [customConfig, setCustomConfig] = useState({});
-  
   const [editingCard, setEditingCard] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', bank: '', last4: '', limit: 0, balance: 0, emis: [], network: 'visa', stmtDate: 1, dueDate: 15 });
 
@@ -133,11 +126,7 @@ export default function App() {
       try {
         const response = await fetch(GOOGLE_APPS_SCRIPT_URL);
         const data = await response.json();
-        
-        if (data.settings?.GLOBAL_PORTFOLIO) {
-          setPortfolio(JSON.parse(data.settings.GLOBAL_PORTFOLIO.portfolio));
-        }
-
+        if (data.settings?.GLOBAL_PORTFOLIO) setPortfolio(JSON.parse(data.settings.GLOBAL_PORTFOLIO.portfolio));
         const processedSettings = {};
         Object.entries(data.settings || {}).forEach(([card, val]) => {
             if (card === 'GLOBAL_PORTFOLIO') return;
@@ -148,7 +137,6 @@ export default function App() {
             };
         });
         setCustomConfig(processedSettings);
-
         const currentSpends = {};
         data.transactions?.forEach((row) => {
           const cardNum = String(row.card);
@@ -157,18 +145,13 @@ export default function App() {
           const cardInfo = (data.settings?.GLOBAL_PORTFOLIO ? JSON.parse(data.settings.GLOBAL_PORTFOLIO.portfolio) : portfolio).find(c => c.last4 === cardNum);
           if (cardInfo) {
             const lastStmt = getLastStatementDate(cardInfo.stmtDate);
-            if (txDate >= lastStmt) {
-                currentSpends[cardNum] = (currentSpends[cardNum] || 0) + amount;
-            }
+            if (txDate >= lastStmt) currentSpends[cardNum] = (currentSpends[cardNum] || 0) + amount;
           }
         });
-
         setTransactions(data.transactions || []);
         setCardSpends(currentSpends);
         setIsLoading(false);
-      } catch (error) {
-        setIsLoading(false);
-      }
+      } catch (error) { setIsLoading(false); }
     };
     fetchLiveData();
   }, [isAuthenticated]);
@@ -177,10 +160,7 @@ export default function App() {
     const fetchedSpend = cardSpends[card.last4] || 0;
     const config = customConfig[card.last4] || {};
     setEditForm({ 
-      id: card.id,
-      name: card.name,
-      bank: card.bank,
-      last4: card.last4,
+      id: card.id, name: card.name, bank: card.bank, last4: card.last4,
       limit: config.limit || card.limit, 
       balance: fetchedSpend + (config.adjustment || 0),
       emis: config.emis || [],
@@ -194,60 +174,29 @@ export default function App() {
   const addNewCard = () => {
     const newId = `card_${Date.now()}`;
     const newCard = {
-        id: newId,
-        name: 'New Platinum',
-        bank: 'Bank Name',
-        last4: '0000',
-        limit: 100000,
-        stmtDate: 1,
-        dueDate: 15,
-        bg: PREMIUM_GRADIENTS[Math.floor(Math.random() * PREMIUM_GRADIENTS.length)],
+        id: newId, name: 'Platinum Plus', bank: 'Bank', last4: '0000', limit: 100000,
+        stmtDate: 1, dueDate: 15, bg: PREMIUM_GRADIENTS[Math.floor(Math.random() * PREMIUM_GRADIENTS.length)],
         network: 'visa'
     };
-    const updatedPortfolio = [...portfolio, newCard];
-    setPortfolio(updatedPortfolio);
-    syncPortfolio(updatedPortfolio);
+    const updated = [...portfolio, newCard];
+    setPortfolio(updated);
+    syncPortfolio(updated);
   };
 
-  const syncPortfolio = async (updatedPortfolio) => {
-    try {
-        await fetch(GOOGLE_APPS_SCRIPT_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ card: 'GLOBAL_PORTFOLIO', portfolio: JSON.stringify(updatedPortfolio) })
-        });
-      } catch (error) { console.error("Sync error:", error); }
+  const syncPortfolio = async (p) => {
+    try { await fetch(GOOGLE_APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ card: 'GLOBAL_PORTFOLIO', portfolio: JSON.stringify(p) }) }); } catch (e) {}
   };
 
   const saveEdit = async () => {
     setIsSaving(true);
-    const updatedPortfolio = portfolio.map(c => 
-        c.id === editingCard.id ? { 
-            ...c, 
-            name: editForm.name, 
-            bank: editForm.bank, 
-            last4: editForm.last4,
-            network: editForm.network,
-            stmtDate: editForm.stmtDate,
-            dueDate: editForm.dueDate
-        } : c
-    );
-    setPortfolio(updatedPortfolio);
-    await syncPortfolio(updatedPortfolio);
-
+    const updatedP = portfolio.map(c => c.id === editingCard.id ? { ...c, name: editForm.name, bank: editForm.bank, last4: editForm.last4, network: editForm.network, stmtDate: editForm.stmtDate, dueDate: editForm.dueDate } : c);
+    setPortfolio(updatedP);
+    await syncPortfolio(updatedP);
     const fetchedSpend = cardSpends[editForm.last4] || 0;
-    const newAdjustment = editForm.balance - fetchedSpend;
-    const newConfig = { ...customConfig, [editForm.last4]: { limit: editForm.limit, adjustment: newAdjustment, emis: editForm.emis } };
+    const newAdj = editForm.balance - fetchedSpend;
+    const newConfig = { ...customConfig, [editForm.last4]: { limit: editForm.limit, adjustment: newAdj, emis: editForm.emis } };
     setCustomConfig(newConfig);
-
-    try {
-      await fetch(GOOGLE_APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify({ card: editForm.last4, limit: editForm.limit, adjustment: newAdjustment, emis: JSON.stringify(editForm.emis) })
-      });
-    } catch (error) { console.error("Sync error:", error); }
-
+    try { await fetch(GOOGLE_APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ card: editForm.last4, limit: editForm.limit, adjustment: newAdj, emis: JSON.stringify(editForm.emis) }) }); } catch (e) {}
     setIsSaving(false);
     setEditingCard(null);
   };
@@ -259,7 +208,6 @@ export default function App() {
     return sum + Math.max(0, fSpend + adj);
   }, 0);
 
-  // Login View
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center p-4 selection:bg-indigo-500/30 relative overflow-hidden">
@@ -294,14 +242,14 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#05070a] text-gray-100 p-4 md:p-10 font-sans selection:bg-indigo-500/30 overflow-x-hidden">
       <header className="max-w-7xl mx-auto mb-10 md:mb-16">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg shadow-indigo-900/40">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10 text-center md:text-left">
+          <div className="flex items-center gap-4 justify-center md:justify-start">
+            <div className="p-3 bg-indigo-600 rounded-2xl shadow-lg">
               <ShieldCheck className="text-white w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none">My Card Hub</h1>
-              <p className="text-gray-500 font-bold tracking-[0.2em] mt-2 uppercase text-[9px]">Financial Control Unit</p>
+              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none uppercase">My Card Hub</h1>
+              <p className="text-gray-500 font-bold tracking-[0.2em] mt-2 uppercase text-[9px]">Financial Control v2.0</p>
             </div>
           </div>
           <div className="flex gap-4 items-center w-full md:w-auto">
@@ -324,7 +272,7 @@ export default function App() {
             <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{isLoading ? '...' : formatInr(totalSpent)}</div>
             <div className="absolute bottom-0 left-0 h-1 bg-white/5 w-full"><div className="h-full bg-gradient-to-r from-rose-500 to-indigo-500 transition-all duration-1000 shadow-[0_0_15px_rgba(244,63,94,0.4)]" style={{ width: `${(totalSpent/totalLimit)*100}%` }}></div></div>
           </div>
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden flex flex-col justify-center">
+          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden">
             <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center gap-2"><PieChart size={12} className="text-emerald-500" /> Utilization</div>
             <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{isLoading ? '...' : `${((totalSpent / totalLimit) * 100).toFixed(1)}%`}</div>
           </div>
@@ -375,7 +323,7 @@ export default function App() {
                         <div className={`text-2xl font-black ${spent < 0 ? 'text-emerald-400' : 'text-white'} tracking-tighter`}>{isLoading ? '...' : formatInr(spent)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Monthly Installments</div>
+                        <div className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Monthly installments</div>
                         <div className="text-lg font-black text-amber-400 tracking-tighter">{formatInr(monthlyEmiTotal)}</div>
                       </div>
                     </div>
@@ -418,7 +366,7 @@ export default function App() {
                   return (
                     <div key={idx} className="flex justify-between items-center p-4 rounded-2xl bg-white/[0.02] border border-white/5 group">
                       <div className="flex gap-4 items-center overflow-hidden">
-                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${cardInfo?.bg || 'bg-gray-800'} text-white text-[9px] font-black shadow-2xl relative overflow-hidden ring-1 ring-white/10`}>
+                        <div className={`w-10 h-10 shrink-0 rounded-xl flex items-center justify-center ${cardInfo?.bg || 'bg-gray-800'} text-white text-[9px] font-black shadow-2xl relative overflow-hidden`}>
                           <span className="relative z-10">{tx.card}</span>
                         </div>
                         <div className="overflow-hidden">
@@ -436,13 +384,13 @@ export default function App() {
         </div>
       </main>
 
-      {/* Vault Config Modal */}
+      {/* Advanced Edit Modal */}
       {editingCard && (
         <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-[#0c1017] border border-white/10 rounded-[3rem] w-full max-w-2xl shadow-2xl my-auto flex flex-col transition-all">
             <div className="p-8 border-b border-white/5 flex justify-between items-center">
               <div>
-                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Vault Protocol</h3>
+                <h3 className="text-xl font-black text-white uppercase tracking-tighter">Vault Config</h3>
                 <p className="text-[9px] font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Security Key: {editingCard.last4}</p>
               </div>
               <button onClick={() => setEditingCard(null)} className="p-3 bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"><X size={20}/></button>
@@ -499,7 +447,7 @@ export default function App() {
                 <div className="flex justify-between items-center">
                    <label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest">EMI Inventory</label>
                    <button onClick={() => setEditForm({...editForm, emis: [...editForm.emis, { id: Date.now(), merchant: '', emiAmount: 0, totalLoanAmount: 0, interestRate: 0, tenureRemaining: 12 }]})} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg">
-                     <Plus size={12}/> New Loan
+                     <Plus size={12}/> Add Loan
                    </button>
                 </div>
                 <div className="space-y-5">
@@ -508,7 +456,7 @@ export default function App() {
                       <button onClick={() => setEditForm({ ...editForm, emis: editForm.emis.filter(e => e.id !== emi.id) })} className="absolute top-4 right-4 text-gray-700 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                          <div className="col-span-1 md:col-span-2">
-                           <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Purchase</label>
+                           <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Description</label>
                            <input placeholder="e.g. iPhone 15 Pro" value={emi.merchant} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, merchant: e.target.value} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-xs font-black text-white outline-none" />
                          </div>
                          <div className="grid grid-cols-2 gap-3">
@@ -517,7 +465,7 @@ export default function App() {
                              <input type="number" value={emi.emiAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, emiAmount: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" />
                            </div>
                            <div>
-                             <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Principal</label>
+                             <label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Total Amount</label>
                              <input type="number" value={emi.totalLoanAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, totalLoanAmount: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" />
                            </div>
                          </div>
