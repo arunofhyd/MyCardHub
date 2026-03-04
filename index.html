@@ -1,0 +1,262 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap } from 'lucide-react';
+
+// Hardcoded configurations based on user portfolio
+const PORTFOLIO = [
+  { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, feeTarget: 40000, bg: 'bg-gradient-to-br from-blue-600 to-blue-900', logo: 'AMEX' },
+  { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: 'bg-gradient-to-br from-indigo-800 to-blue-900', logo: 'VISA' },
+  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: 'bg-gradient-to-br from-orange-500 to-red-600', logo: 'MASTERCARD' },
+  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: 'bg-gradient-to-br from-amber-500 to-orange-700', logo: 'VISA' },
+  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, feeTarget: 200000, bg: 'bg-gradient-to-br from-red-600 to-red-900', logo: 'MASTERCARD' },
+  { id: 'onecard', name: 'OneCard BOB', bank: 'BOB', last4: '8697', limit: 300000, stmtDate: 18, dueDate: 4, bg: 'bg-gradient-to-br from-gray-800 to-black', logo: 'VISA' },
+  { id: 'mojo', name: 'Kotak Mojo', bank: 'Kotak Bank', last4: '8222', limit: 488000, stmtDate: 20, dueDate: 6, bg: 'bg-gradient-to-br from-red-700 to-rose-900', logo: 'VISA' },
+  { id: 'tiger', name: 'IndusInd Tiger', bank: 'IndusInd Bank', last4: '6688', limit: 200000, stmtDate: 23, dueDate: 11, bg: 'bg-gradient-to-br from-yellow-700 to-amber-900', logo: 'VISA' },
+  { id: 'ixigo', name: 'AU ixigo', bank: 'AU Small Finance', last4: '1309', limit: 70000, stmtDate: 24, dueDate: 12, bg: 'bg-gradient-to-br from-purple-600 to-purple-900', logo: 'VISA' }
+];
+
+// Helper to format currency
+const formatInr = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
+
+// Helper to calculate next dates
+const getDates = (stmtDay, dueDay) => {
+  const today = new Date(); // Current date (e.g., March 4, 2026)
+  let nextStmt = new Date(today.getFullYear(), today.getMonth(), stmtDay);
+  
+  if (today.getDate() > stmtDay) {
+    nextStmt.setMonth(nextStmt.getMonth() + 1);
+  }
+
+  let nextDue = new Date(nextStmt.getFullYear(), nextStmt.getMonth(), dueDay);
+  // If due date is numerically smaller than stmt date, it falls in the next month
+  if (dueDay < stmtDay) {
+    nextDue.setMonth(nextDue.getMonth() + 1);
+  }
+
+  const daysToStmt = Math.ceil((nextStmt - today) / (1000 * 60 * 60 * 24));
+  const daysToDue = Math.ceil((nextDue - today) / (1000 * 60 * 60 * 24));
+
+  return { 
+    nextStmt: nextStmt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), 
+    nextDue: nextDue.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), 
+    daysToStmt, 
+    daysToDue 
+  };
+};
+
+export default function App() {
+  const [transactions, setTransactions] = useState([]);
+  const [cardSpends, setCardSpends] = useState({});
+
+  // Mock initial data load (In reality, this fetches from your Google Sheet API)
+  useEffect(() => {
+    const mockDb = {
+      '2000': 12500, '1697': 45000, '2569': 28000, '2002': 1500, 
+      '8559': 14000, '8697': 0, '8222': 5000, '6688': 2000, '1309': 8500
+    };
+    setCardSpends(mockDb);
+
+    // Mock recent transactions
+    setTransactions([
+      { id: 1, date: 'Today, 2:30 PM', merchant: 'Amazon India', amount: 1500, card: '2002' },
+      { id: 2, date: 'Today, 10:15 AM', merchant: 'Swiggy Instamart', amount: 840, card: '2569' },
+      { id: 3, date: 'Yesterday', merchant: 'Airtel Broadband', amount: 1178, card: '8559' },
+      { id: 4, date: 'Mar 2', merchant: 'IRCTC Web', amount: 5166, card: '1309' },
+    ]);
+  }, []);
+
+  const totalLimit = PORTFOLIO.reduce((sum, card) => sum + card.limit, 0);
+  const totalSpent = Object.values(cardSpends).reduce((sum, val) => sum + val, 0);
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-gray-100 p-4 md:p-8 font-sans selection:bg-indigo-500/30">
+      
+      {/* Header Dashboard */}
+      <header className="max-w-7xl mx-auto mb-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-cyan-400 flex items-center gap-3">
+              <ShieldCheck className="text-indigo-500 w-8 h-8" />
+              MyCardHub
+            </h1>
+            <p className="text-gray-400 mt-1">Automated Portfolio Tracking & Analytics</p>
+          </div>
+          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-medium transition-all flex items-center gap-2 shadow-lg shadow-indigo-900/20">
+            <Zap className="w-4 h-4" /> Sync Emails
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center gap-3 text-gray-400 mb-2">
+              <CreditCard className="w-5 h-5" /> Total Credit Line
+            </div>
+            <div className="text-3xl font-bold text-white">{formatInr(totalLimit)}</div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+            <div className="flex items-center gap-3 text-gray-400 mb-2">
+              <TrendingUp className="w-5 h-5 text-rose-400" /> Current Outstanding
+            </div>
+            <div className="text-3xl font-bold text-white">{formatInr(totalSpent)}</div>
+            <div className="absolute bottom-0 left-0 h-1 bg-gray-800 w-full">
+              <div className="h-full bg-rose-500" style={{ width: `${(totalSpent/totalLimit)*100}%` }}></div>
+            </div>
+          </div>
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center gap-3 text-gray-400 mb-2">
+              <PieChart className="w-5 h-5 text-emerald-400" /> Overall Utilization
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {((totalSpent / totalLimit) * 100).toFixed(1)}%
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Excellent (Under 30%)</p>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Grid */}
+      <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Cards Section */}
+        <div className="lg:col-span-2 space-y-6">
+          <h2 className="text-xl font-semibold flex items-center gap-2 mb-4">
+            <CreditCard className="w-5 h-5 text-indigo-400" /> Active Cards (9)
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {PORTFOLIO.map(card => {
+              const spent = cardSpends[card.last4] || 0;
+              const util = (spent / card.limit) * 100;
+              const dates = getDates(card.stmtDate, card.dueDate);
+              const isDueSoon = dates.daysToDue <= 7 && spent > 0;
+
+              return (
+                <div key={card.id} className="group relative bg-gray-900 border border-gray-800 rounded-2xl p-1 overflow-hidden transition-all hover:border-gray-700 hover:shadow-2xl hover:shadow-indigo-900/10">
+                  
+                  {/* Physical Card Representation */}
+                  <div className={`relative h-44 rounded-xl p-5 flex flex-col justify-between overflow-hidden ${card.bg} shadow-inner`}>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                    <div className="flex justify-between items-start z-10">
+                      <div className="text-white/80 font-medium tracking-wider text-sm">{card.bank}</div>
+                      <div className="font-bold text-white/90 italic tracking-widest">{card.logo}</div>
+                    </div>
+                    <div className="z-10">
+                      <div className="text-white/60 text-xs mb-1 uppercase tracking-widest">Card Number</div>
+                      <div className="font-mono text-xl tracking-widest text-white flex gap-3">
+                        <span>••••</span><span>••••</span><span>••••</span><span>{card.last4}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-end z-10">
+                      <div>
+                        <div className="text-white/60 text-xs uppercase tracking-wider mb-1">Cardholder</div>
+                        <div className="text-white font-medium tracking-wider">{card.name}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card Analytics */}
+                  <div className="p-4 space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <div className="text-sm text-gray-400">Current Spend</div>
+                        <div className="text-xl font-semibold text-white">{formatInr(spent)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500">Available</div>
+                        <div className="text-sm text-gray-300 font-mono">{formatInr(card.limit - spent)}</div>
+                      </div>
+                    </div>
+
+                    {/* Utilization Bar */}
+                    <div className="h-1.5 w-full bg-gray-800 rounded-full overflow-hidden">
+                      <div className={`h-full rounded-full ${util > 30 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${util}%` }}></div>
+                    </div>
+
+                    {/* Dates & Alerts */}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-800/50">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-500" />
+                        <div className="text-xs">
+                          <span className="text-gray-400">Stmt: </span>
+                          <span className="text-gray-200">{dates.nextStmt} <span className="text-gray-600">({dates.daysToStmt}d)</span></span>
+                        </div>
+                      </div>
+                      <div className={`text-xs flex items-center gap-1.5 px-2 py-1 rounded-md ${isDueSoon ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-gray-400'}`}>
+                        {isDueSoon && <AlertCircle className="w-3.5 h-3.5" />}
+                        Due: {dates.nextDue}
+                      </div>
+                    </div>
+
+                    {/* Fee Waiver Target (If applicable) */}
+                    {card.feeTarget && (
+                      <div className="pt-2">
+                        <div className="flex justify-between text-[10px] text-gray-400 mb-1">
+                          <span>Fee Waiver Progress</span>
+                          <span>{formatInr(Math.max(card.feeTarget - 45000, 0))} to go</span>
+                        </div>
+                        <div className="h-1 w-full bg-gray-800 rounded-full overflow-hidden">
+                          <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(45000/card.feeTarget)*100}%` }}></div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Sidebar */}
+        <div className="space-y-6">
+          
+          {/* Recent Parsed Transactions */}
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 shadow-xl">
+            <h2 className="text-lg font-semibold flex items-center gap-2 mb-6">
+              <IndianRupee className="w-5 h-5 text-emerald-400" /> Recent Parsed Spends
+            </h2>
+            <div className="space-y-4">
+              {transactions.map((tx) => {
+                const cardInfo = PORTFOLIO.find(c => c.last4 === tx.card);
+                return (
+                  <div key={tx.id} className="flex justify-between items-center p-3 rounded-xl hover:bg-gray-800/50 transition-colors border border-transparent hover:border-gray-700/50">
+                    <div className="flex gap-3 items-center">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${cardInfo?.bg || 'bg-gray-700'} text-white text-xs font-bold shadow-lg`}>
+                        {tx.card}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-200 text-sm">{tx.merchant}</div>
+                        <div className="text-xs text-gray-500">{tx.date} • {cardInfo?.name}</div>
+                      </div>
+                    </div>
+                    <div className="font-semibold text-rose-400">
+                      -{formatInr(tx.amount)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button className="w-full mt-6 text-sm text-indigo-400 hover:text-indigo-300 font-medium py-2">
+              View All Transactions →
+            </button>
+          </div>
+
+          {/* Setup Instructions Box */}
+          <div className="bg-gradient-to-br from-indigo-900/20 to-purple-900/20 border border-indigo-500/20 rounded-2xl p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <h3 className="font-semibold text-indigo-300 mb-2">Automation Status</h3>
+            <p className="text-sm text-gray-400 mb-4 leading-relaxed">
+              Your dashboard is currently using mock data. Deploy the Google Apps Script to parse your Gmail and stream live data here.
+            </p>
+            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-400/10 p-2 rounded-lg border border-emerald-400/20">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              System Ready for Webhook
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  );
+}
