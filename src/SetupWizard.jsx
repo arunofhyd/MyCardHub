@@ -62,142 +62,206 @@ export default function SetupWizard({ user, onComplete }) {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const appScriptCode = `// ccdeck Apps Script Integration
-const SPREADSHEET_ID = "${sheetId}";
+  const appScriptCode = `/**
+ * ccdeck - Advanced Gmail Parser (Now with 2-Way Sync!)
+ */
+const DATABASE_SPREADSHEET_ID = "${sheetId}";
 
-function syncTransactions() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  const sheet = ss.getSheets()[0];
+function extractCreditCardTransactions() {
+  const ss = SpreadsheetApp.openById(DATABASE_SPREADSHEET_ID);
+  const sheet = ss.getSheets()[0]; // Always use the first tab for transactions
 
   // Create headers if empty
   if (sheet.getLastRow() === 0) {
-    sheet.appendRow(['date', 'merchant', 'amount', 'card']);
+    sheet.appendRow(['Date', 'CardLast4', 'Amount', 'Merchant', 'Subject', 'MessageID']);
   }
 
-  // Search for recent transaction emails (adjust query as needed)
-  const threads = GmailApp.search('subject:"transaction" OR subject:"payment" OR subject:"spent" in:inbox newer_than:7d');
+  const data = sheet.getDataRange().getValues();
+  const processedIds = new Set();
+  const processedTransactions = new Set(); // To prevent duplicates from multiple emails for same tx
 
-  // Get existing dates to avoid duplicates (basic check)
-  const existingData = sheet.getDataRange().getValues();
-  const existingDates = new Set(existingData.map(row => row[0].toString()));
-
-  let newRows = [];
-
-  for (let thread of threads) {
-    const messages = thread.getMessages();
-    for (let msg of messages) {
-      const body = msg.getPlainBody();
-      const dateStr = msg.getDate().toISOString();
-
-      if (existingDates.has(dateStr)) continue;
-
-      // Basic extraction logic (needs tailoring to your specific bank emails)
-      let amountMatch = body.match(/(?:Rs\.?|INR)\s*([\\d,]+\\.?\\d*)/i);
-      let cardMatch = body.match(/(?:ending in|card no\.?)\s*x{0,4}(\\d{4})/i);
-      let merchantMatch = body.match(/at\\s+(.*?)\\s+(?:on|for)/i) || body.match(/info:\\s*(.*?)\\s*\\n/i);
-
-      if (amountMatch && cardMatch) {
-        const amount = amountMatch[1].replace(/,/g, '');
-        const card = cardMatch[1];
-        const merchant = merchantMatch ? merchantMatch[1].trim() : 'Unknown Merchant';
-
-        newRows.push([dateStr, merchant, amount, card]);
-        existingDates.add(dateStr);
+  for (let i = 1; i < data.length; i++) {
+    if (data[i][5]) processedIds.add(data[i][5]);
+    if (data[i][0] && data[i][1] && data[i][2]) {
+      // Create a composite key: Date(YYYY-MM-DD) + Card + Amount
+      const d = new Date(data[i][0]);
+      if (!isNaN(d)) {
+         const dateKey = d.toISOString().split('T')[0];
+         processedTransactions.add(\`\${dateKey}_\${data[i][1]}_\${Math.abs(Number(data[i][2]))}\`);
       }
     }
   }
 
-  if (newRows.length > 0) {
-    sheet.getRange(sheet.getLastRow() + 1, 1, newRows.length, 4).setValues(newRows);
-  }
-}
+  // Broader search to catch all variations of spending and payments
+  const gmailTransactionFilter = 'after:2025/12/31 (subject:"Transaction" OR subject:"Spent" OR subject:"charge" OR subject:"debited" OR subject:"payment" OR subject:"credited" OR subject:"alert" OR subject:"txn" OR subject:"purchase" OR "debited" OR "spent" OR "credited" OR "payment received" OR "transaction alert")';
+  const emailThreads = GmailApp.search(gmailTransactionFilter);
 
-function doPost(e) {
-  try {
-    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getActiveSheet();
-    const data = JSON.parse(e.postData.contents);
+  for (let i = 0; i < emailThreads.length; i++) {
+    const emailMessages = emailThreads[i].getMessages();
 
-    // Check if it's a portfolio/settings update
-    if (data.card === 'GLOBAL_PORTFOLIO' || data.limit !== undefined) {
-      const settingsSheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName("Settings") ||
-                           SpreadsheetApp.openById(SPREADSHEET_ID).insertSheet("Settings");
+    for (let j = 0; j < emailMessages.length; j++) {
+      const currentEmail = emailMessages[j];
+      const messageId = currentEmail.getId();
 
-      let found = false;
-      const dataRange = settingsSheet.getDataRange().getValues();
-      for (let i = 0; i < dataRange.length; i++) {
-        if (dataRange[i][0] == data.card) {
-           settingsSheet.getRange(i+1, 2).setValue(JSON.stringify(data));
-           found = true;
-           break;
+      if (processedIds.has(messageId)) continue;
+
+      const emailBody = currentEmail.getPlainBody();
+      const emailDate = currentEmail.getDate();
+      const emailSubject = currentEmail.getSubject();
+
+      // Strict payment check to prevent false positives
+      const isPayment = /(?:payment (?:received|successful|credited)|credited to|payment of rs|thank you for your payment)/i.test(emailSubject) ||
+                        /(?:payment (?:received|successful|credited)|credited to|payment of rs|thank you for your payment)/i.test(emailBody);
+
+      let spendAmount = parseSpendAmount(emailBody) || parseSpendAmount(emailSubject);
+      let cardSuffix = parseCardSuffix(emailBody) || parseCardSuffix(emailSubject);
+      let merchantName = isPayment ? "Bill Payment / Refund" : parseMerchantName(emailBody);
+
+      if (spendAmount !== null && cardSuffix) {
+        const dateKey = emailDate.toISOString().split('T')[0];
+        const txKey = \`\${dateKey}_\${cardSuffix}_\${Math.abs(spendAmount)}\`;
+
+        // Skip if we already logged this exact amount on this card today (prevents double counting duplicate alert emails)
+        if (processedTransactions.has(txKey)) continue;
+
+        if (isPayment) {
+          spendAmount = -Math.abs(spendAmount);
         }
-      }
-      if (!found) {
-        settingsSheet.appendRow([data.card, JSON.stringify(data)]);
-      }
-      return ContentService.createTextOutput(JSON.stringify({status: "success", type: "settings"})).setMimeType(ContentService.MimeType.JSON);
-    }
 
-    return ContentService.createTextOutput(JSON.stringify({status: "ignored"})).setMimeType(ContentService.MimeType.JSON);
-  } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({status: "error", message: error.toString()})).setMimeType(ContentService.MimeType.JSON);
+        sheet.appendRow([emailDate, cardSuffix, spendAmount, merchantName, emailSubject, messageId]);
+        processedIds.add(messageId);
+        processedTransactions.add(txKey);
+      }
+    }
   }
 }
 
+function parseSpendAmount(textData) {
+  const currencyPattern = /(?:Rs\\.?|INR)\\s*([\\d,]+(?:\\.\\d+)?)/i;
+  const matchResult = currencyPattern.exec(textData);
+  if (matchResult) return parseFloat(matchResult[1].replace(/,/g, ''));
+  return null;
+}
+
+function parseCardSuffix(textData) {
+  const cardSuffixPattern = /(?:ending with|ending in|card no\\.?|card)\\s*(?:XX|XXXX|X)?(\\d{4})/i;
+  const matchResult = cardSuffixPattern.exec(textData);
+  if (matchResult) return matchResult[1];
+  return null;
+}
+
+function parseMerchantName(textData) {
+  const patterns = [
+    /(?:merchant|info|remarks|description|desc)\\s*[:\\-]\\s*([A-Za-z0-9\\s\\.\\*\\-\\&]+)/i,
+    /(?:at|to|towards)\\s+([A-Za-z0-9\\s\\.\\*\\-\\&]+?)\\s+(?:on|using|via|for|from|through|with)/i,
+    /(?:at|to|towards)\\s+([A-Za-z0-9\\s\\.\\*\\-\\&]{3,35})(?:\\.|$|(?=\\r?\\n))/i
+  ];
+  for (let pattern of patterns) {
+    const matchResult = pattern.exec(textData);
+    if (matchResult && matchResult[1]) {
+      let merchant = matchResult[1].trim();
+      merchant = merchant.replace(/\\s+(on|using|via|for|from|through|with)$/i, '').trim();
+      if (merchant.length > 1) return merchant;
+    }
+  }
+  return "Unknown Merchant";
+}
+
+// ==========================================
+// THE WEB API (Reads/Writes to Vercel)
+// ==========================================
+
+// 1. Sends data TO the dashboard
 function doGet(e) {
-  // Trigger sync on load
   try {
-    syncTransactions();
-  } catch(e) {
-    // Ignore sync errors to still return data
+    // Attempt a quick background sync whenever dashboard loads
+    extractCreditCardTransactions();
+  } catch(err) {
+    // Ignore to still return data
+  }
+
+  const ss = SpreadsheetApp.openById(DATABASE_SPREADSHEET_ID);
+  const txSheet = ss.getSheets()[0];
+  const settingsSheet = ss.getSheetByName('Settings');
+
+  // Fetch Transactions
+  const txData = txSheet.getDataRange().getValues();
+  const transactions = [];
+  for (let i = 1; i < txData.length; i++) {
+    if (txData[i][1] && txData[i][2] !== "") {
+      transactions.push({
+        date: txData[i][0],
+        card: String(txData[i][1]),
+        amount: Number(txData[i][2]),
+        merchant: txData[i][3],
+        subject: txData[i][4]
+      });
+    }
+  }
+  transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  // Fetch Custom Settings (Limits/Balances)
+  const settings = {};
+  if (settingsSheet) {
+    const setData = settingsSheet.getDataRange().getValues();
+    for (let i = 1; i < setData.length; i++) {
+      settings[String(setData[i][0])] = {
+        limit: Number(setData[i][1]),
+        adjustment: Number(setData[i][2])
+      };
+    }
+  }
+
+  return ContentService.createTextOutput(JSON.stringify({ transactions, settings }))
+    .setMimeType(ContentService.MimeType.JSON)
+    .setHeaders({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+    });
+}
+
+// 2. Receives custom configurations FROM the dashboard
+function doPost(e) {
+  const ss = SpreadsheetApp.openById(DATABASE_SPREADSHEET_ID);
+  let settingsSheet = ss.getSheetByName('Settings');
+
+  // Auto-create Settings tab if it doesn't exist
+  if (!settingsSheet) {
+    settingsSheet = ss.insertSheet('Settings');
+    settingsSheet.appendRow(['CardLast4', 'Limit', 'Adjustment']);
   }
 
   try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const mainSheet = ss.getSheets()[0];
-    const dataRange = mainSheet.getDataRange().getValues();
+    const payload = JSON.parse(e.postData.contents);
+    const card = String(payload.card);
+    const limit = Number(payload.limit);
+    const adjustment = Number(payload.adjustment);
 
-    // Assuming headers: date, merchant, amount, card
-    const headers = dataRange[0].map(h => h.toString().toLowerCase());
-    const dateIdx = headers.indexOf('date');
-    const merchantIdx = headers.indexOf('merchant');
-    const amountIdx = headers.indexOf('amount');
-    const cardIdx = headers.indexOf('card');
+    const data = settingsSheet.getDataRange().getValues();
+    let found = false;
 
-    let transactions = [];
-    if (dateIdx > -1 && merchantIdx > -1 && amountIdx > -1 && cardIdx > -1) {
-      for (let i = 1; i < dataRange.length; i++) {
-        let row = dataRange[i];
-        if (row[dateIdx] && row[amountIdx]) {
-           transactions.push({
-             date: row[dateIdx],
-             merchant: row[merchantIdx],
-             amount: row[amountIdx],
-             card: String(row[cardIdx])
-           });
-        }
+    // Update existing card row
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === card) {
+        settingsSheet.getRange(i + 1, 2).setValue(limit);
+        settingsSheet.getRange(i + 1, 3).setValue(adjustment);
+        found = true;
+        break;
       }
     }
 
-    let settingsObj = {};
-    const settingsSheet = ss.getSheetByName("Settings");
-    if (settingsSheet) {
-       const sData = settingsSheet.getDataRange().getValues();
-       for(let i=0; i<sData.length; i++){
-          if(sData[i][0] && sData[i][1]){
-             try {
-               settingsObj[sData[i][0]] = JSON.parse(sData[i][1]);
-             } catch(e) {}
-          }
-       }
+    // Append new card row if not found
+    if (!found) {
+      settingsSheet.appendRow([card, limit, adjustment]);
     }
 
-    return ContentService.createTextOutput(JSON.stringify({
-      transactions: transactions,
-      settings: settingsObj
-    })).setMimeType(ContentService.MimeType.JSON);
-
-  } catch(error) {
-    return ContentService.createTextOutput(JSON.stringify({error: error.toString()})).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON)
+      .setHeaders({
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, GET, OPTIONS"
+      });
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: error.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 
@@ -231,7 +295,7 @@ function doOptions(e) {
 
         <div className="flex justify-between items-center mb-10 relative">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-px bg-white/10 -z-10"></div>
-          {[1, 2, 3].map((num) => (
+          {[1, 2, 3, 4].map((num) => (
             <div key={num} className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm border-2 transition-colors ${
               step > num ? 'bg-indigo-600 border-indigo-600 text-white' :
               step === num ? 'bg-[#0c1017] border-indigo-500 text-indigo-400' :
@@ -316,7 +380,29 @@ function doOptions(e) {
         {step === 3 && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-              <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-indigo-400">3. Deploy Web App</h3>
+              <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-indigo-400">3. Enable Auto-Sync</h3>
+              <p className="text-sm text-gray-300 mb-4">Set up a trigger so ccdeck syncs your emails automatically in the background.</p>
+              <ol className="list-decimal list-inside space-y-3 text-sm text-gray-300 font-medium">
+                <li>In Apps Script, click the <strong>Clock icon (Triggers)</strong> on the left sidebar.</li>
+                <li>Click the blue <strong>+ Add Trigger</strong> button at the bottom right.</li>
+                <li>Set "Choose which function to run" to <strong>extractCreditCardTransactions</strong>.</li>
+                <li>Set "Select event source" to <strong>Time-driven</strong>.</li>
+                <li>Set "Select type of time based trigger" to <strong>Hour timer</strong>.</li>
+                <li>Set "Select hour interval" to <strong>Every hour</strong> (or your preference) and click Save.</li>
+              </ol>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button onClick={() => setStep(2)} className="flex-1 bg-white/5 hover:bg-white/10 text-white px-7 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-white/10">Back</button>
+              <button onClick={() => setStep(4)} className="flex-[2] bg-indigo-600 hover:bg-indigo-700 text-white px-7 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 shadow-lg text-xs uppercase tracking-widest">Next Step <ChevronRight size={16} /></button>
+            </div>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+              <h3 className="text-lg font-black uppercase tracking-tighter mb-4 text-indigo-400">4. Deploy Web App</h3>
               <ol className="list-decimal list-inside space-y-3 text-sm text-gray-300 font-medium">
                 <li>In Apps Script, click the blue <strong>Deploy</strong> button (top right) &gt; <strong>New deployment</strong>.</li>
                 <li>Click the gear icon next to "Select type" and choose <strong>Web app</strong>.</li>
@@ -339,7 +425,7 @@ function doOptions(e) {
             </div>
 
             <div className="flex gap-4 pt-4">
-              <button onClick={() => setStep(2)} disabled={isSaving} className="flex-1 bg-white/5 hover:bg-white/10 text-white px-7 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-white/10">Back</button>
+              <button onClick={() => setStep(3)} disabled={isSaving} className="flex-1 bg-white/5 hover:bg-white/10 text-white px-7 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-xs uppercase tracking-widest border border-white/10">Back</button>
               <button
                 onClick={handleSaveWebAppUrl}
                 disabled={!webAppUrl || isSaving}
