@@ -616,12 +616,12 @@ export default function App() {
       </main>
 
       {editingCard && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 md:p-8 overflow-y-auto">
-          <div className="bg-[#0c1017] border border-white/10 rounded-[3rem] w-full max-w-6xl shadow-2xl my-auto flex flex-col md:flex-row transition-all h-[90vh]">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/10 rounded-[3rem] overflow-hidden w-full max-w-6xl shadow-2xl my-auto flex flex-col md:flex-row transition-colors h-[90vh]">
 
             {/* Left Side: Settings */}
             <div className="flex flex-col w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#0c1017] z-10 transition-colors">
-              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-white/5 flex justify-between items-center shrink-0 rounded-tl-[3rem] md:rounded-bl-[3rem]">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-white/5 flex justify-between items-center shrink-0">
                 <div>
                   <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Card Config</h3>
                   <p className="text-xs font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Settings & Limits</p>
@@ -700,7 +700,7 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="p-6 md:p-8 bg-gray-50 dark:bg-[#0a0d13] border-t border-gray-200 dark:border-white/5 flex gap-4 shrink-0 rounded-bl-[3rem] md:rounded-bl-none md:rounded-br-none transition-colors">
+              <div className="p-6 md:p-8 bg-gray-50 dark:bg-[#0a0d13] border-t border-gray-200 dark:border-white/5 flex gap-4 shrink-0 transition-colors">
                 <button disabled={isSaving} onClick={() => setEditingCard(null)} className="flex-1 py-5 rounded-2xl font-black text-gray-500 hover:text-gray-900 hover:bg-gray-200 dark:hover:text-white dark:hover:bg-white/5 transition-all uppercase text-[11px] tracking-widest">Discard</button>
                 <button disabled={isSaving} onClick={saveEdit} className="flex-[2] flex items-center justify-center gap-2 py-5 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-lg uppercase text-[11px] tracking-widest">{isSaving ? <Loader2 size={16} className="animate-spin" /> : 'Synchronize Settings'}</button>
               </div>
@@ -788,7 +788,7 @@ export default function App() {
 
       {editingTransaction && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/10 rounded-[3rem] w-full max-w-lg shadow-2xl my-auto flex flex-col transition-all">
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/10 rounded-[3rem] overflow-hidden w-full max-w-lg shadow-2xl my-auto flex flex-col transition-all">
             <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
               <div><h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Edit Transaction</h3><p className="text-[9px] font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Manual Override</p></div>
               <button onClick={() => setEditingTransaction(null)} className="p-3 bg-gray-100 dark:bg-white/5 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all"><X size={20}/></button>
