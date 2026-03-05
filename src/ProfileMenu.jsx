@@ -109,7 +109,7 @@ export default function ProfileMenu({ user }) {
                   {/* The Track Background filling up */}
                   <div
                     className="absolute top-0 left-0 h-full bg-rose-500/20 transition-all duration-75"
-                    style={{ width: \`\${swipeProgress}%\` }}
+                    style={{ width: `${swipeProgress}%` }}
                   ></div>
 
                   {/* The Text */}
@@ -122,7 +122,7 @@ export default function ProfileMenu({ user }) {
                   {/* The Thumb */}
                   <div
                     className="absolute top-1 bottom-1 left-1 w-10 bg-rose-500 rounded-lg shadow-lg flex items-center justify-center transition-all duration-75 pointer-events-none z-10"
-                    style={{ left: \`calc(\${swipeProgress}% - \${(swipeProgress/100) * 40}px + 4px)\` }}
+                    style={{ left: `calc(${swipeProgress}% - ${(swipeProgress/100) * 40}px + 4px)` }}
                   >
                     <ChevronRight size={16} className="text-white" />
                   </div>

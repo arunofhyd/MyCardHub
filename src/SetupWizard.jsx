@@ -87,7 +87,7 @@ function extractCreditCardTransactions() {
       const d = new Date(data[i][0]);
       if (!isNaN(d)) {
          const dateKey = d.toISOString().split('T')[0];
-         processedTransactions.add(\`\${dateKey}_\${data[i][1]}_\${Math.abs(Number(data[i][2]))}\`);
+         processedTransactions.add(dateKey + "_" + data[i][1] + "_" + Math.abs(Number(data[i][2])));
       }
     }
   }
@@ -119,7 +119,7 @@ function extractCreditCardTransactions() {
 
       if (spendAmount !== null && cardSuffix) {
         const dateKey = emailDate.toISOString().split('T')[0];
-        const txKey = \`\${dateKey}_\${cardSuffix}_\${Math.abs(spendAmount)}\`;
+        const txKey = dateKey + "_" + cardSuffix + "_" + Math.abs(spendAmount);
 
         // Skip if we already logged this exact amount on this card today (prevents double counting duplicate alert emails)
         if (processedTransactions.has(txKey)) continue;
