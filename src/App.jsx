@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock, ArrowUpDown, GripVertical, Eye, EyeOff } from 'lucide-react';
+import { CreditCard, AlertCircle, Calendar, IndianRupee, PieChart, TrendingUp, ShieldCheck, Zap, Loader2, Settings, Pencil, X, Lock, RefreshCcw, Delete, Plus, Trash2, Info, CreditCard as CardIcon, ChevronRight, Clock, ArrowUpDown, GripVertical, Eye, EyeOff, LogOut } from 'lucide-react';
+import Login from './Login';
+import SetupWizard from './SetupWizard';
+import ProfileMenu from './ProfileMenu';
+import { auth, db } from './firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 // Premium Gradient Palette for Dynamic Cards
 const PREMIUM_GRADIENTS = [
@@ -50,18 +56,8 @@ const CardNetworkLogo = ({ network }) => {
   }
 };
 
-// FULLY RESTORED: Your default 9 cards
-const INITIAL_PORTFOLIO = [
-  { id: 'amex', name: 'Amex Blue', bank: 'American Express', last4: '2000', limit: 370000, stmtDate: 2, dueDate: 20, bg: PREMIUM_GRADIENTS[0], image: 'https://images.unsplash.com/photo-1639322537228-f710d846310a?q=80&w=600&auto=format', network: 'amex' },
-  { id: 'millennia', name: 'HDFC Millennia', bank: 'HDFC Bank', last4: '1697', limit: 231000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[1], image: 'https://images.unsplash.com/photo-1639322537504-6427a16b0a28?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'swiggy', name: 'HDFC Swiggy', bank: 'HDFC Bank', last4: '2569', limit: 185000, stmtDate: 6, dueDate: 26, bg: PREMIUM_GRADIENTS[2], image: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=600&auto=format', network: 'mastercard' },
-  { id: 'amazon', name: 'Amazon Pay', bank: 'ICICI Bank', last4: '2002', limit: 330000, stmtDate: 12, dueDate: 30, bg: PREMIUM_GRADIENTS[3], image: 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'airtel', name: 'Airtel Axis', bank: 'Axis Bank', last4: '8559', limit: 185000, stmtDate: 12, dueDate: 2, bg: PREMIUM_GRADIENTS[4], image: 'https://images.unsplash.com/photo-1550684848-fac1c5b4e853?q=80&w=600&auto=format', network: 'rupay' },
-  { id: 'onecard', name: 'OneCard BOB', bank: 'BOB', last4: '8697', limit: 300000, stmtDate: 18, dueDate: 4, bg: PREMIUM_GRADIENTS[5], image: 'https://images.unsplash.com/photo-1614850523296-d8c1af93d400?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'mojo', name: 'Kotak Mojo', bank: 'Kotak Bank', last4: '8222', limit: 488000, stmtDate: 20, dueDate: 6, bg: PREMIUM_GRADIENTS[6], image: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'tiger', name: 'IndusInd Tiger', bank: 'IndusInd Bank', last4: '6688', limit: 200000, stmtDate: 23, dueDate: 11, bg: PREMIUM_GRADIENTS[7], image: 'https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=600&auto=format', network: 'visa' },
-  { id: 'ixigo', name: 'AU ixigo', bank: 'AU Small Finance', last4: '1309', limit: 70000, stmtDate: 24, dueDate: 12, bg: PREMIUM_GRADIENTS[8], image: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?q=80&w=600&auto=format', network: 'visa' }
-];
+// Removed initial cards for testing purposes
+const INITIAL_PORTFOLIO = [];
 
 const formatInr = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(amount);
 
@@ -89,122 +85,166 @@ const getDates = (stmtDay, dueDay) => {
 };
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [pin, setPin] = useState('');
-  const [pinError, setPinError] = useState(false);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [appScriptUrl, setAppScriptUrl] = useState('');
+
   const [transactions, setTransactions] = useState([]);
   const [cardSpends, setCardSpends] = useState({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [portfolio, setPortfolio] = useState(INITIAL_PORTFOLIO);
+  const [portfolio, setPortfolio] = useState([]);
   const [customConfig, setCustomConfig] = useState({});
   const [editingCard, setEditingCard] = useState(null);
   const [editForm, setEditForm] = useState({ name: '', bank: '', last4: '', limit: 0, balance: 0, emis: [], network: 'visa', stmtDate: 1, dueDate: 15 });
   const [editingTransaction, setEditingTransaction] = useState(null);
   const [editTxForm, setEditTxForm] = useState({ merchant: '', amount: 0, date: '', card: '' });
+  const [cardTxFilter, setCardTxFilter] = useState('year'); // 'all', 'year', 'month'
   
   const [sortMode, setSortMode] = useState('custom');
   const [sortDirection, setSortDirection] = useState('desc');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [draggedIdx, setDraggedIdx] = useState(null);
 
-  const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzSZk7SCZwdrwokpnjoBREXLwxj3rYUv6mAz-4IJiZhqn7DFDIdftERkfptW1tbkqzy/exec";
-
   useEffect(() => {
-    if (sessionStorage.getItem('mycardhub_unlocked') === 'true') setIsAuthenticated(true);
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        try {
+          const docRef = doc(db, 'users', currentUser.uid);
+          const getDocPromise = getDoc(docRef);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000));
+
+          const docSnap = await Promise.race([getDocPromise, timeoutPromise]);
+
+          if (docSnap.exists() && docSnap.data().appScriptUrl) {
+            setAppScriptUrl(docSnap.data().appScriptUrl);
+          } else {
+            // Check local storage fallback
+            const localUrl = localStorage.getItem('ccdeck_appScriptUrl');
+            setAppScriptUrl(localUrl || '');
+          }
+        } catch (e) {
+          console.error("Error fetching user doc, using fallback:", e);
+          const localUrl = localStorage.getItem('ccdeck_appScriptUrl');
+          setAppScriptUrl(localUrl || '');
+        }
+      } else {
+        setAppScriptUrl('');
+      }
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  const addPinNumber = (num) => {
-    if (pin.length < 4) {
-      const nextPin = pin + num;
-      setPin(nextPin);
-      if (nextPin === '4421') {
-        setTimeout(() => { sessionStorage.setItem('mycardhub_unlocked', 'true'); setIsAuthenticated(true); }, 300);
-      } else if (nextPin.length === 4) {
-        setPinError(true);
-        setTimeout(() => { setPin(''); setPinError(false); }, 600);
-      }
-    }
-  };
-
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!user || !appScriptUrl) return;
+
     const fetchLiveData = async () => {
+      setIsLoading(true);
       try {
-        const response = await fetch(GOOGLE_APPS_SCRIPT_URL + '?t=' + Date.now(), { cache: 'no-store' });
-        const data = await response.json();
-        
-        if (data.settings?.GLOBAL_PORTFOLIO?.portfolio) {
-          setPortfolio(JSON.parse(data.settings.GLOBAL_PORTFOLIO.portfolio));
+        let userPortfolio = [];
+        let userConfig = {};
+
+        try {
+          const docRef = doc(db, 'users', user.uid);
+          const getDocPromise = getDoc(docRef);
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 5000));
+          const docSnap = await Promise.race([getDocPromise, timeoutPromise]);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.portfolio) {
+               userPortfolio = JSON.parse(data.portfolio);
+               // If for some reason it's empty, use initial
+               if (userPortfolio.length === 0) {
+                 userPortfolio = INITIAL_PORTFOLIO;
+                 setDoc(doc(db, "users", user.uid), { portfolio: JSON.stringify(INITIAL_PORTFOLIO) }, { merge: true }).catch(()=>{});
+               }
+            } else {
+               // First time or missing
+               userPortfolio = INITIAL_PORTFOLIO;
+               setDoc(doc(db, "users", user.uid), { portfolio: JSON.stringify(INITIAL_PORTFOLIO) }, { merge: true }).catch(()=>{});
+            }
+
+            if (data.customConfig) {
+               userConfig = JSON.parse(data.customConfig);
+            }
+          } else {
+               // User document doesn't exist but somehow has appScriptUrl (unlikely, but safe fallback)
+               userPortfolio = INITIAL_PORTFOLIO;
+               setDoc(doc(db, "users", user.uid), { portfolio: JSON.stringify(INITIAL_PORTFOLIO) }, { merge: true }).catch(()=>{});
+          }
+        } catch (e) {
+          console.warn("Firestore fetch timed out or failed, using local fallback state", e);
+          // Fallback to local state if firestore fails
+          userPortfolio = portfolio.length > 0 ? portfolio : INITIAL_PORTFOLIO;
+          userConfig = customConfig;
         }
 
-        const processedSettings = {};
-        Object.entries(data.settings || {}).forEach(([card, val]) => {
-            if (card === 'GLOBAL_PORTFOLIO') return;
-            processedSettings[card] = {
-                limit: val.limit,
-                adjustment: val.adjustment,
-                emis: typeof val.emis === 'string' ? JSON.parse(val.emis) : (val.emis || [])
-            };
-        });
-        setCustomConfig(processedSettings);
+        setPortfolio(userPortfolio);
+        setCustomConfig(userConfig);
+
+        // Fetch from AppScript with a timeout so UI doesn't hang forever
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+        let response;
+        try {
+          response = await fetch(appScriptUrl + '?t=' + Date.now(), {
+            cache: 'no-store',
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+        } catch (fetchErr) {
+          clearTimeout(timeoutId);
+          throw new Error("Failed to fetch from Google Apps Script. It might be taking too long or the URL is invalid.");
+        }
+
+        const data = await response.json();
 
         const currentSpends = {};
-        const p = data.settings?.GLOBAL_PORTFOLIO?.portfolio ? JSON.parse(data.settings.GLOBAL_PORTFOLIO.portfolio) : INITIAL_PORTFOLIO;
+        const p = userPortfolio;
+        const validTransactions = [];
 
         data.transactions?.forEach((row) => {
           const cardNum = String(row.card).trim();
-
-          // Clean amount: strip out anything except numbers, decimal points, and minus signs
           const cleanAmountStr = String(row.amount).replace(/[^\d.-]/g, '');
           const amount = Number(cleanAmountStr);
 
           if (isNaN(amount)) return;
 
-          // Try to parse DD/MM/YYYY or standard ISO date
           let txDate = new Date(row.date);
           if (isNaN(txDate.getTime()) && typeof row.date === 'string') {
             const parts = row.date.split('/');
             if (parts.length === 3) {
-              // DD/MM/YYYY
               txDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00.000Z`);
             }
           }
 
+          // Reassign the clean parsed date and amount back so the Activity Feed can process them safely
+          row.date = isNaN(txDate.getTime()) ? new Date().toISOString() : txDate.toISOString();
+          row.amount = amount;
+          row.card = cardNum;
+
+          validTransactions.push(row);
+
           const cardInfo = p.find(c => c.last4 === cardNum);
           if (cardInfo) {
-            // Include all transactions to ensure spends show up, regardless of statement date filtering
             currentSpends[cardNum] = (currentSpends[cardNum] || 0) + amount;
           }
         });
 
-        // Add Mock data fallback if there's no transactions
-        if (!data.transactions || data.transactions.length === 0) {
-           setCardSpends({ '2000': 12500, '2002': -5000, '8559': 3500 });
-           setTransactions([
-             { card: '2000', amount: 2500, merchant: 'AMAZON PAY', date: new Date().toISOString() },
-             { card: '2002', amount: -5000, merchant: 'PAYMENT RECEIVED', date: new Date(Date.now() - 86400000).toISOString() },
-             { card: '8559', amount: 3500, merchant: 'FLIPKART', date: new Date(Date.now() - 172800000).toISOString() }
-           ]);
-        } else {
-           setCardSpends(currentSpends);
-           setTransactions(data.transactions || []);
-        }
+        setCardSpends(currentSpends);
+        setTransactions(validTransactions);
         setIsLoading(false);
       } catch (error) {
         console.error("Fetch Live Data Error:", error);
-        // Fallback mock data in case of error
-        setCardSpends({ '2000': 12500, '2002': -5000, '8559': 3500 });
-        setTransactions([
-          { card: '2000', amount: 2500, merchant: 'AMAZON PAY', date: new Date().toISOString() },
-          { card: '2002', amount: -5000, merchant: 'PAYMENT RECEIVED', date: new Date(Date.now() - 86400000).toISOString() },
-          { card: '8559', amount: 3500, merchant: 'FLIPKART', date: new Date(Date.now() - 172800000).toISOString() }
-        ]);
         setIsLoading(false);
       }
     };
     fetchLiveData();
-  }, [isAuthenticated]);
+  }, [user, appScriptUrl]);
 
   const groupedTransactions = useMemo(() => {
     const groups = {};
@@ -269,6 +309,7 @@ export default function App() {
 
   const addNewCard = () => {
     const newId = `card_${Date.now()}`;
+    // Re-use PREMIUM_GRADIENTS from above
     const newCard = { id: newId, name: 'Platinum Card', bank: 'New Bank', last4: '0000', limit: 100000, stmtDate: 1, dueDate: 15, bg: PREMIUM_GRADIENTS[Math.floor(Math.random() * PREMIUM_GRADIENTS.length)], network: 'visa' };
     const updated = [...portfolio, newCard];
     setPortfolio(updated);
@@ -286,14 +327,42 @@ export default function App() {
   };
 
   const syncPortfolio = async (p) => {
-    try { await fetch(GOOGLE_APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ card: 'GLOBAL_PORTFOLIO', portfolio: JSON.stringify(p) }) }); } catch (e) {}
+    if (!user) return;
+    try {
+      await setDoc(doc(db, "users", user.uid), {
+        portfolio: JSON.stringify(p)
+      }, { merge: true });
+    } catch (e) {
+      console.error("Failed to sync portfolio", e);
+    }
+  };
+
+  const formatForTxInput = (isoString) => {
+    const d = new Date(isoString);
+    if (isNaN(d)) return isoString;
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  };
+
+  const parseFromTxInput = (dateStr) => {
+    // Expected format: DD-MM-YYYY HH:mm:ss
+    const parts = dateStr.match(/(\d{2})-(\d{2})-(\d{4}) (\d{2}):(\d{2}):(\d{2})/);
+    if (parts) {
+      const [, day, month, year, hours, mins, secs] = parts;
+      const d = new Date(`${year}-${month}-${day}T${hours}:${mins}:${secs}`);
+      if (!isNaN(d)) return d.toISOString();
+    }
+    // Fallback if parsing fails or format is different
+    const fallbackD = new Date(dateStr);
+    if (!isNaN(fallbackD)) return fallbackD.toISOString();
+    return dateStr;
   };
 
   const openEditTxModal = (tx) => {
     setEditTxForm({
       merchant: tx.merchant,
       amount: tx.amount,
-      date: tx.date,
+      date: formatForTxInput(tx.date),
       card: tx.card,
       originalDate: tx.date,
       originalMerchant: tx.merchant,
@@ -307,7 +376,7 @@ export default function App() {
     // For now, updating local state to reflect UI change.
     const updatedTransactions = transactions.map(t => {
       if (t.date === editTxForm.originalDate && t.merchant === editTxForm.originalMerchant && t.card === editTxForm.originalCard) {
-        return { ...t, merchant: editTxForm.merchant, amount: Number(editTxForm.amount), card: editTxForm.card, date: editTxForm.date };
+        return { ...t, merchant: editTxForm.merchant, amount: Number(editTxForm.amount), card: editTxForm.card, date: parseFromTxInput(editTxForm.date) };
       }
       return t;
     });
@@ -316,15 +385,25 @@ export default function App() {
   };
 
   const saveEdit = async () => {
+    if (!user) return;
     setIsSaving(true);
     const updatedP = portfolio.map(c => c.id === editingCard.id ? { ...c, name: editForm.name, bank: editForm.bank, last4: editForm.last4, network: editForm.network, stmtDate: editForm.stmtDate, dueDate: editForm.dueDate } : c);
     setPortfolio(updatedP);
     await syncPortfolio(updatedP);
+
     const fSpend = cardSpends[editForm.last4] || 0;
     const newAdj = editForm.balance - fSpend;
     const newConfig = { ...customConfig, [editForm.last4]: { limit: editForm.limit, adjustment: newAdj, emis: editForm.emis } };
     setCustomConfig(newConfig);
-    try { await fetch(GOOGLE_APPS_SCRIPT_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ card: editForm.last4, limit: editForm.limit, adjustment: newAdj, emis: JSON.stringify(editForm.emis) }) }); } catch (e) {}
+
+    try {
+      await setDoc(doc(db, "users", user.uid), {
+        customConfig: JSON.stringify(newConfig)
+      }, { merge: true });
+    } catch (e) {
+      console.error("Failed to save config", e);
+    }
+
     setIsSaving(false);
     setEditingCard(null);
   };
@@ -336,39 +415,24 @@ export default function App() {
     return sum + Math.max(0, fSpend + adj);
   }, 0);
 
-  if (!isAuthenticated) {
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#05070a] flex flex-col items-center justify-center p-4 selection:bg-indigo-500/30 relative overflow-hidden">
-        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_-20%,_#312e81_0%,_transparent_50%)] opacity-40"></div>
-        <div className={`bg-white/5 backdrop-blur-3xl border border-white/10 p-10 md:p-14 rounded-[4rem] w-full max-w-sm shadow-[0_0_80px_rgba(0,0,0,0.5)] transition-all duration-500 relative z-10 ${pinError ? 'animate-shake border-rose-500/50' : ''}`}>
-          <div className="flex flex-col items-center mb-14 text-center">
-            <div className="w-16 h-16 bg-gradient-to-tr from-indigo-600 to-blue-400 rounded-2xl flex items-center justify-center shadow-lg mb-8">
-              <ShieldCheck className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-3xl font-black text-white tracking-tight leading-none mb-1">My Card Hub</h1>
-            <p className="text-[9px] font-bold text-indigo-400 tracking-[0.4em] uppercase">Vault Terminal</p>
-          </div>
-          <div className="flex gap-5 justify-center mb-12">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className={`w-2.5 h-2.5 rounded-full transition-all duration-500 border ${pin.length > i ? 'bg-white border-white scale-150 shadow-[0_0_20px_rgba(255,255,255,0.7)]' : 'bg-transparent border-white/20'}`} />
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-5 max-w-[280px] mx-auto">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <button key={num} onClick={() => addPinNumber(String(num))} className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white hover:bg-white/10 active:scale-90 transition-all backdrop-blur-md">{num}</button>
-            ))}
-            <div className="w-16 h-16"></div>
-            <button onClick={() => addPinNumber('0')} className="w-16 h-16 rounded-[1.5rem] bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-bold text-white hover:bg-white/10 active:scale-90 transition-all backdrop-blur-md">0</button>
-            <button onClick={() => setPin(pin.slice(0, -1))} className="w-16 h-16 rounded-[1.5rem] bg-white/5 flex items-center justify-center text-gray-400 hover:text-white active:scale-90 transition-all"><Delete size={24} /></button>
-          </div>
-        </div>
-        <style dangerouslySetInnerHTML={{__html: `@keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-8px); } 40%, 80% { transform: translateX(8px); } } .animate-shake { animation: shake 0.4s ease-in-out; }`}} />
+      <div className="min-h-screen bg-gray-50 dark:bg-[#05070a] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
       </div>
     );
   }
 
+  if (!user) {
+    return <Login />;
+  }
+
+  if (!appScriptUrl) {
+    return <SetupWizard user={user} onComplete={(url) => setAppScriptUrl(url)} />;
+  }
+
   return (
-    <div className="min-h-screen bg-[#05070a] text-gray-100 p-4 md:p-10 font-sans selection:bg-indigo-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#05070a] text-gray-900 dark:text-gray-100 p-4 md:p-10 font-sans selection:bg-indigo-500/30 overflow-x-hidden transition-colors duration-300">
       <header className="max-w-7xl mx-auto mb-10 md:mb-16">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-10 text-center md:text-left">
           <div className="flex items-center gap-4 justify-center md:justify-start">
@@ -376,33 +440,34 @@ export default function App() {
               <ShieldCheck className="text-white w-7 h-7" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight leading-none uppercase">My Card Hub</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-none uppercase">ccdeck</h1>
               <p className="text-gray-500 font-bold tracking-[0.2em] mt-2 uppercase text-[9px]">Financial Control v2.0</p>
             </div>
           </div>
           <div className="flex gap-4 items-center w-full md:w-auto">
-            <button onClick={addNewCard} className="flex-1 md:flex-none bg-white/5 hover:bg-white/10 border border-white/10 text-white px-5 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest">
-               <Plus size={16} className="text-indigo-400" /> Add Card
+            <button onClick={addNewCard} className="flex-1 md:flex-none bg-white dark:bg-white/5 hover:bg-gray-100 dark:hover:bg-white/10 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white px-5 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 text-[10px] uppercase tracking-widest shadow-sm dark:shadow-none">
+               <Plus size={16} className="text-indigo-500 dark:text-indigo-400" /> Add Card
             </button>
             <button onClick={() => window.location.reload()} disabled={isLoading} className="flex-1 md:flex-none bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-7 py-4 rounded-2xl font-black transition-all flex items-center justify-center gap-2 shadow-lg text-[10px] uppercase tracking-widest">
                 {isLoading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />} Sync
             </button>
+            <ProfileMenu user={user} />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden group">
-            <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3">Total Credit Line</div>
-            <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{formatInr(totalLimit)}</div>
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/5 rounded-[2rem] p-7 md:p-8 shadow-xl dark:shadow-2xl relative overflow-hidden group transition-colors">
+            <div className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3">Total Credit Line</div>
+            <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter">{formatInr(totalLimit)}</div>
           </div>
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden group">
-            <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center gap-2"><TrendingUp size={12} className="text-rose-500" /> Net Debt</div>
-            <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{isLoading ? '...' : formatInr(totalSpent)}</div>
-            <div className="absolute bottom-0 left-0 h-1 bg-white/5 w-full"><div className="h-full bg-gradient-to-r from-rose-500 to-indigo-500 transition-all duration-1000 shadow-[0_0_15px_rgba(244,63,94,0.4)]" style={{ width: `${(totalSpent/totalLimit)*100}%` }}></div></div>
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/5 rounded-[2rem] p-7 md:p-8 shadow-xl dark:shadow-2xl relative overflow-hidden group transition-colors">
+            <div className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center gap-2"><TrendingUp size={12} className="text-rose-500" /> Net Debt</div>
+            <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter">{isLoading ? '...' : formatInr(totalSpent)}</div>
+            <div className="absolute bottom-0 left-0 h-1 bg-gray-100 dark:bg-white/5 w-full"><div className="h-full bg-gradient-to-r from-rose-500 to-indigo-500 transition-all duration-1000 shadow-[0_0_15px_rgba(244,63,94,0.4)]" style={{ width: `${(totalSpent/totalLimit)*100}%` }}></div></div>
           </div>
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2rem] p-7 md:p-8 shadow-2xl relative overflow-hidden group text-center md:text-left">
-            <div className="text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center justify-center md:justify-start gap-2"><PieChart size={12} className="text-emerald-500" /> Utilization</div>
-            <div className="text-3xl md:text-4xl font-black text-white tracking-tighter">{isLoading ? '...' : `${((totalSpent / totalLimit) * 100).toFixed(1)}%`}</div>
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/5 rounded-[2rem] p-7 md:p-8 shadow-xl dark:shadow-2xl relative overflow-hidden group text-center md:text-left transition-colors">
+            <div className="text-gray-400 dark:text-gray-500 text-[9px] font-black uppercase tracking-[0.3em] mb-3 flex items-center justify-center md:justify-start gap-2"><PieChart size={12} className="text-emerald-500" /> Utilization</div>
+            <div className="text-3xl md:text-4xl font-black text-gray-900 dark:text-white tracking-tighter">{isLoading ? '...' : `${((totalSpent / totalLimit) * 100).toFixed(1)}%`}</div>
           </div>
         </div>
       </header>
@@ -411,14 +476,14 @@ export default function App() {
         <div className="lg:col-span-2 space-y-8">
           
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-2 gap-4">
-            <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 flex items-center gap-2">
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 dark:text-gray-500 flex items-center gap-2">
                <ArrowUpDown size={14} /> View Order
-               <button onClick={() => setShowSortMenu(!showSortMenu)} className="ml-2 hover:text-white transition-colors">
+               <button onClick={() => setShowSortMenu(!showSortMenu)} className="ml-2 hover:text-gray-900 dark:hover:text-white transition-colors">
                  {showSortMenu ? <EyeOff size={16} /> : <Eye size={16} />}
                </button>
             </h2>
             {showSortMenu && (
-              <div className="flex flex-wrap bg-white/5 p-1 rounded-xl border border-white/5">
+              <div className="flex flex-wrap bg-white dark:bg-white/5 p-1 rounded-xl border border-gray-200 dark:border-white/5 shadow-sm dark:shadow-none">
                 {[{ id: 'custom', label: 'Custom' }, { id: 'usage', label: 'Usage' }, { id: 'date', label: 'Date' }, { id: 'alphabetical', label: 'A-Z' }].map(mode => (
                   <button
                     key={mode.id}
@@ -432,7 +497,7 @@ export default function App() {
                         else if (mode.id === 'alphabetical') setSortDirection('asc');
                       }
                     }}
-                    className={`px-4 py-1.5 flex items-center gap-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === mode.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
+                    className={`px-4 py-1.5 flex items-center gap-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all ${sortMode === mode.id ? 'bg-indigo-600 text-white shadow-md' : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'}`}
                   >
                     {mode.label}
                     {sortMode === mode.id && mode.id !== 'custom' && (
@@ -455,8 +520,8 @@ export default function App() {
               const monthlyEmi = (config.emis || []).reduce((sum, e) => sum + Number(e.emiAmount || 0), 0);
 
               return (
-                <div key={card.id} draggable={sortMode === 'custom'} onDragStart={() => onDragStart(index)} onDragOver={(e) => onDragOver(e, index)} onDragEnd={onDragEnd} className={`group relative bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-2 transition-all hover:border-indigo-500/20 ${draggedIdx === index ? 'opacity-20 scale-95' : 'opacity-100'} ${sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''}`}>
-                  <div className={`relative h-52 rounded-[2rem] p-7 flex flex-col justify-between overflow-hidden ${card.bg} shadow-2xl`}>
+                <div key={card.id} draggable={sortMode === 'custom'} onDragStart={() => onDragStart(index)} onDragOver={(e) => onDragOver(e, index)} onDragEnd={onDragEnd} className={`group relative bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/5 rounded-[2.5rem] p-2 transition-all hover:border-indigo-500/30 dark:hover:border-indigo-500/20 shadow-xl dark:shadow-none ${draggedIdx === index ? 'opacity-20 scale-95' : 'opacity-100'} ${sortMode === 'custom' ? 'cursor-grab active:cursor-grabbing' : ''}`}>
+                  <div className={`relative h-52 rounded-[2rem] p-7 flex flex-col justify-between overflow-hidden ${card.bg} shadow-lg dark:shadow-2xl`}>
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 via-transparent to-transparent pointer-events-none"></div>
                     {card.image && <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" style={{ backgroundImage: `url('${card.image}')` }}></div>}
                     <div className="flex justify-between items-start z-10">
@@ -475,31 +540,31 @@ export default function App() {
                   </div>
 
                   <div className="p-7 space-y-6 relative">
-                    <button onClick={() => openEditModal(card)} className="absolute top-4 right-6 p-2.5 text-gray-600 hover:text-white hover:bg-white/5 rounded-xl transition-all z-20"><Settings size={18} /></button>
+                    <button onClick={() => openEditModal(card)} className="absolute top-4 right-6 p-2.5 text-gray-400 hover:text-gray-900 dark:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-all z-20"><Settings size={18} /></button>
                     <div className="flex justify-between items-end">
                       <div>
-                        <div className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Live Spend</div>
-                        <div className={`text-2xl font-black ${spent < 0 ? 'text-emerald-400' : 'text-white'} tracking-tighter`}>{isLoading ? '...' : formatInr(spent)}</div>
+                        <div className="text-[8px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Live Spend</div>
+                        <div className={`text-2xl font-black ${spent < 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-900 dark:text-white'} tracking-tighter`}>{isLoading ? '...' : formatInr(spent)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[8px] text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Installments</div>
-                        <div className="text-lg font-black text-amber-400 tracking-tighter">{formatInr(monthlyEmi)}</div>
+                        <div className="text-[8px] text-gray-400 dark:text-gray-500 uppercase font-black tracking-[0.2em] mb-1.5">Installments</div>
+                        <div className="text-lg font-black text-amber-500 dark:text-amber-400 tracking-tighter">{formatInr(monthlyEmi)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden shadow-inner flex-1">
-                        <div className={`h-full rounded-full transition-all duration-1000 ${util > 30 ? 'bg-amber-500' : 'bg-indigo-600'}`} style={{ width: `${util}%` }}></div>
+                      <div className="h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner flex-1">
+                        <div className={`h-full rounded-full transition-all duration-1000 ${util > 30 ? 'bg-amber-500' : 'bg-indigo-500 dark:bg-indigo-600'}`} style={{ width: `${util}%` }}></div>
                       </div>
-                      <span className="text-[8px] font-black text-gray-500 tracking-widest">{util.toFixed(1)}%</span>
+                      <span className="text-[8px] font-black text-gray-400 dark:text-gray-500 tracking-widest">{util.toFixed(1)}%</span>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100 dark:border-white/5">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Statement</span>
-                        <div className="flex items-center gap-1.5 text-[10px] font-black text-white"><Calendar size={10} className="text-indigo-400" /> {dates.stmt}</div>
+                        <span className="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Statement</span>
+                        <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-900 dark:text-white"><Calendar size={10} className="text-indigo-500 dark:text-indigo-400" /> {dates.stmt}</div>
                       </div>
                       <div className="flex flex-col gap-1 text-right">
-                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">Payment Due</span>
-                        <div className={`flex items-center justify-end gap-1.5 text-[10px] font-black ${dates.daysToDue <= 7 ? 'text-rose-500' : 'text-white'}`}>{dates.due} <Clock size={10} /></div>
+                        <span className="text-[8px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-widest">Payment Due</span>
+                        <div className={`flex items-center justify-end gap-1.5 text-[10px] font-black ${dates.daysToDue <= 7 ? 'text-rose-500' : 'text-gray-900 dark:text-white'}`}>{dates.due} <Clock size={10} /></div>
                       </div>
                     </div>
                   </div>
@@ -510,39 +575,39 @@ export default function App() {
         </div>
 
         <div className="space-y-10">
-          <div className="bg-[#0c1017] border border-white/5 rounded-[2.5rem] p-8 shadow-2xl">
-            <h2 className="text-xl font-black flex items-center gap-3 mb-8 uppercase tracking-tighter text-white"><RefreshCcw size={22} className="text-indigo-500" /> Activity Feed</h2>
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/5 rounded-[2.5rem] p-8 shadow-xl dark:shadow-2xl transition-colors">
+            <h2 className="text-xl font-black flex items-center gap-3 mb-8 uppercase tracking-tighter text-gray-900 dark:text-white"><RefreshCcw size={22} className="text-indigo-500" /> Activity Feed</h2>
             {isLoading ? (
-              <div className="flex justify-center items-center py-20"><Loader2 size={32} className="text-indigo-600 animate-spin" /></div>
+              <div className="flex justify-center items-center py-20"><Loader2 size={32} className="text-indigo-500 dark:text-indigo-600 animate-spin" /></div>
             ) : (
               <div className="space-y-8 max-h-[700px] overflow-y-auto pr-2 custom-scrollbar">
                 {Object.entries(groupedTransactions).map(([monthYear, monthTxs], groupIdx) => (
                   <div key={groupIdx} className="space-y-4">
-                    <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] sticky top-0 bg-[#0c1017]/90 backdrop-blur-md py-2 z-10 border-b border-white/5">
+                    <h3 className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] sticky top-0 bg-white/90 dark:bg-[#0c1017]/90 backdrop-blur-md py-2 z-10 border-b border-gray-100 dark:border-white/5 transition-colors">
                       {monthYear}
                     </h3>
                     {monthTxs.map((tx, idx) => {
                       const cardInfo = portfolio.find(c => c.last4 === tx.card);
                       const isCredit = tx.amount < 0;
                       return (
-                        <div key={idx} onClick={() => openEditTxModal(tx)} className="flex justify-between items-center p-5 rounded-2xl bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 group cursor-pointer transition-colors shadow-sm hover:shadow-md">
+                        <div key={idx} onClick={() => openEditTxModal(tx)} className="flex justify-between items-center p-5 rounded-2xl bg-gray-50 hover:bg-gray-100 dark:bg-white/[0.02] dark:hover:bg-white/[0.05] border border-gray-100 dark:border-white/5 group cursor-pointer transition-colors shadow-sm">
                           <div className="flex gap-4 items-center overflow-hidden flex-1">
-                            <div className={`w-12 h-12 shrink-0 rounded-[1rem] flex items-center justify-center ${cardInfo?.bg || 'bg-gray-800'} text-white text-[10px] font-black shadow-xl relative overflow-hidden border border-white/10`}>
+                            <div className={`w-12 h-12 shrink-0 rounded-[1rem] flex items-center justify-center ${cardInfo?.bg || 'bg-gray-800'} text-white text-[10px] font-black shadow-lg dark:shadow-xl relative overflow-hidden border border-black/10 dark:border-white/10`}>
                               <span className="relative z-10">{tx.card}</span>
                             </div>
                             <div className="overflow-hidden flex-1">
-                              <div className="font-black text-white text-sm truncate group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{tx.merchant}</div>
-                              <div className="text-[9px] font-bold text-gray-500 uppercase mt-1 tracking-[0.1em]">{tx.formattedDate}</div>
+                              <div className="font-black text-gray-900 dark:text-white text-sm truncate group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{tx.merchant}</div>
+                              <div className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase mt-1 tracking-[0.1em]">{tx.formattedDate}</div>
                             </div>
                           </div>
-                          <div className={`font-black text-sm shrink-0 ml-4 ${isCredit ? 'text-emerald-400' : 'text-rose-500'} tracking-tighter`}>{isCredit ? '+' : '-'}{formatInr(Math.abs(tx.amount))}</div>
+                          <div className={`font-black text-sm shrink-0 ml-4 ${isCredit ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500'} tracking-tighter`}>{isCredit ? '+' : '-'}{formatInr(Math.abs(tx.amount))}</div>
                         </div>
                       );
                     })}
                   </div>
                 ))}
                 {Object.keys(groupedTransactions).length === 0 && (
-                  <div className="text-center py-10 text-gray-500 text-xs font-black uppercase tracking-widest">No activity found</div>
+                  <div className="text-center py-10 text-gray-400 dark:text-gray-500 text-xs font-black uppercase tracking-widest">No activity found</div>
                 )}
               </div>
             )}
@@ -551,117 +616,211 @@ export default function App() {
       </main>
 
       {editingCard && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0c1017] border border-white/10 rounded-[3rem] w-full max-w-2xl shadow-2xl my-auto flex flex-col transition-all">
-            <div className="p-8 border-b border-white/5 flex justify-between items-center">
-              <div><h3 className="text-xl font-black text-white uppercase tracking-tighter">Credit Card Details</h3><p className="text-[9px] font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Card Ending: {editingCard.last4}</p></div>
-              <button onClick={() => setEditingCard(null)} className="p-3 bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"><X size={20}/></button>
-            </div>
-            <div className="p-8 overflow-y-auto custom-scrollbar space-y-10 max-h-[60vh]">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Descriptor</label><input value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-xs" /></div>
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Institution</label><input value={editForm.bank} onChange={(e) => setEditForm({...editForm, bank: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-xs" /></div>
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Card Ending in</label><input value={editForm.last4} onChange={(e) => setEditForm({...editForm, last4: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" maxLength={4} /></div>
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Network Logic</label><select value={editForm.network} onChange={(e) => setEditForm({...editForm, network: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-[10px]"><option value="visa">Visa</option><option value="mastercard">Mastercard</option><option value="amex">Amex</option><option value="rupay">RuPay</option></select></div>
-              </div>
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Stmt Date</label><input type="number" min="1" max="31" value={editForm.stmtDate} onChange={(e) => setEditForm({...editForm, stmtDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black text-center text-xs" /></div>
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Due Date</label><input type="number" min="1" max="31" value={editForm.dueDate} onChange={(e) => setEditForm({...editForm, dueDate: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black text-center text-xs" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-white/5">
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Credit Line</label><input type="number" value={editForm.limit} onChange={(e) => setEditForm({...editForm, limit: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" /></div>
-                <div><label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Outstanding Bal / Live Spend</label><input type="number" value={editForm.balance} onChange={(e) => setEditForm({...editForm, balance: Number(e.target.value)})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" /></div>
-              </div>
-              <div className="space-y-6 pt-6 border-t border-white/5">
-                <div className="flex justify-between items-center"><label className="block text-[9px] font-black text-gray-500 uppercase tracking-widest">EMI Inventory</label><button onClick={() => setEditForm({...editForm, emis: [...editForm.emis, { id: Date.now(), merchant: '', emiAmount: 0, totalLoanAmount: 0, interestRate: 0, tenureRemaining: 12, firstPaymentMonth: '', totalTenure: 12 }]})} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-lg"><Plus size={12}/> New Loan</button></div>
-                <div className="space-y-5">
-                  {editForm.emis.map((emi) => {
-                    let endText = '';
-                    if (emi.firstPaymentMonth && emi.totalTenure) {
-                      const [year, month] = emi.firstPaymentMonth.split('-');
-                      const d = new Date(year, month - 1);
-                      d.setMonth(d.getMonth() + Number(emi.totalTenure) - 1);
-                      endText = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    } else if (emi.tenureRemaining) {
-                      const d = new Date();
-                      d.setMonth(d.getMonth() + Number(emi.tenureRemaining) - 1);
-                      endText = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-                    }
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 md:p-8 overflow-y-auto">
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/10 rounded-[3rem] overflow-hidden w-full max-w-6xl shadow-2xl my-auto flex flex-col md:flex-row transition-colors h-[90vh]">
 
-                    return (
-                      <div key={emi.id} className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-5 relative">
-                        <button onClick={() => setEditForm({ ...editForm, emis: editForm.emis.filter(e => e.id !== emi.id) })} className="absolute top-4 right-4 text-gray-700 hover:text-rose-500 transition-colors"><Trash2 size={16}/></button>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          <div className="col-span-1 md:col-span-2"><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Purchase</label><input placeholder="e.g. iPhone 15 Pro" value={emi.merchant} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, merchant: e.target.value} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-xs font-black text-white outline-none" /></div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Monthly EMI</label><input type="number" value={emi.emiAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, emiAmount: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" /></div>
-                            <div><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Total Amount</label><input type="number" value={emi.totalLoanAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, totalLoanAmount: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" /></div>
+            {/* Left Side: Settings */}
+            <div className="flex flex-col w-full md:w-1/2 border-b md:border-b-0 md:border-r border-gray-200 dark:border-white/5 bg-white dark:bg-[#0c1017] z-10 transition-colors">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-white/5 flex justify-between items-center shrink-0">
+                <div>
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Card Config</h3>
+                  <p className="text-xs font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Settings & Limits</p>
+                </div>
+                {/* Mobile close button only */}
+                <button onClick={() => setEditingCard(null)} className="md:hidden p-3 bg-gray-100 dark:bg-white/5 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all"><X size={20}/></button>
+              </div>
+
+              <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1 space-y-10">
+                <div className="grid grid-cols-1 gap-6">
+                  <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Descriptor</label><input value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none uppercase text-sm" /></div>
+                  <div className="grid grid-cols-2 gap-6">
+                    <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Institution</label><input value={editForm.bank} onChange={(e) => setEditForm({...editForm, bank: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none uppercase text-sm" /></div>
+                    <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Ending In</label><input value={editForm.last4} onChange={(e) => setEditForm({...editForm, last4: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none text-sm" maxLength={4} /></div>
+                  </div>
+                  <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Network Logic</label><select value={editForm.network} onChange={(e) => setEditForm({...editForm, network: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none uppercase text-sm"><option value="visa">Visa</option><option value="mastercard">Mastercard</option><option value="amex">Amex</option><option value="rupay">RuPay</option></select></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-200 dark:border-white/5">
+                  <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Stmt Date</label><input type="number" min="1" max="31" value={editForm.stmtDate} onChange={(e) => setEditForm({...editForm, stmtDate: Number(e.target.value)})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black text-center text-sm" /></div>
+                  <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Due Date</label><input type="number" min="1" max="31" value={editForm.dueDate} onChange={(e) => setEditForm({...editForm, dueDate: Number(e.target.value)})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black text-center text-sm" /></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-200 dark:border-white/5">
+                  <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Credit Line</label><input type="number" value={editForm.limit} onChange={(e) => setEditForm({...editForm, limit: Number(e.target.value)})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none text-sm" /></div>
+                  <div><label className="block text-[11px] font-black text-gray-500 uppercase mb-3 tracking-widest">Live Spend</label><input type="number" value={editForm.balance} onChange={(e) => setEditForm({...editForm, balance: Number(e.target.value)})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-2xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none text-sm" /></div>
+                </div>
+
+                <div className="space-y-6 pt-6 border-t border-gray-200 dark:border-white/5">
+                  <div className="flex justify-between items-center"><label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest">EMI Inventory</label><button onClick={() => setEditForm({...editForm, emis: [...editForm.emis, { id: Date.now(), merchant: '', emiAmount: 0, totalLoanAmount: 0, interestRate: 0, tenureRemaining: 12, firstPaymentMonth: '', totalTenure: 12 }]})} className="px-5 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 shadow-lg"><Plus size={14}/> New Loan</button></div>
+                  <div className="space-y-6">
+                    {editForm.emis.map((emi) => {
+                      let endText = '';
+                      if (emi.firstPaymentMonth && emi.totalTenure) {
+                        const [year, month] = emi.firstPaymentMonth.split('-');
+                        const d = new Date(year, month - 1);
+                        d.setMonth(d.getMonth() + Number(emi.totalTenure) - 1);
+                        endText = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                      } else if (emi.tenureRemaining) {
+                        const d = new Date();
+                        d.setMonth(d.getMonth() + Number(emi.tenureRemaining) - 1);
+                        endText = d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+                      }
+
+                      return (
+                        <div key={emi.id} className="p-6 bg-gray-50 dark:bg-black/40 rounded-[2rem] border border-gray-200 dark:border-white/5 space-y-6 relative">
+                          <button onClick={() => setEditForm({ ...editForm, emis: editForm.emis.filter(e => e.id !== emi.id) })} className="absolute top-5 right-5 p-2 bg-rose-500/10 rounded-xl text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"><Trash2 size={16}/></button>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div className="col-span-1 md:col-span-2"><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">Purchase</label><input placeholder="e.g. iPhone 15 Pro" value={emi.merchant} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, merchant: e.target.value} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none" /></div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">Monthly EMI</label><input type="number" value={emi.emiAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, emiAmount: Number(e.target.value)} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none" /></div>
+                              <div><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">Total Amount</label><input type="number" value={emi.totalLoanAmount} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, totalLoanAmount: Number(e.target.value)} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none" /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">First Pay Mth</label><input type="month" value={emi.firstPaymentMonth || ''} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, firstPaymentMonth: e.target.value} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none dark:[color-scheme:dark]" /></div>
+                              <div><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">Total Months</label><input type="number" value={emi.totalTenure || emi.tenureRemaining || 12} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, totalTenure: Number(e.target.value)} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none" /></div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">Rate %</label><input type="number" value={emi.interestRate} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, interestRate: Number(e.target.value)} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none" /></div>
+                              <div><label className="text-[10px] font-black text-gray-600 uppercase mb-2 block tracking-widest">Months Left</label><input type="number" value={emi.tenureRemaining} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, tenureRemaining: Number(e.target.value)} : item)})} className="w-full bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 rounded-xl px-4 py-3 text-sm font-black text-gray-900 dark:text-white outline-none" /></div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">First Pay Mth (Opt)</label><input type="month" value={emi.firstPaymentMonth || ''} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, firstPaymentMonth: e.target.value} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" style={{ colorScheme: 'dark' }} /></div>
-                            <div><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Total Months</label><input type="number" value={emi.totalTenure || emi.tenureRemaining || 12} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, totalTenure: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" /></div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Rate %</label><input type="number" value={emi.interestRate} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, interestRate: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" /></div>
-                            <div><label className="text-[8px] font-black text-gray-600 uppercase mb-1.5 block tracking-widest">Months Left</label><input type="number" value={emi.tenureRemaining} onChange={(e) => setEditForm({...editForm, emis: editForm.emis.map(item => item.id === emi.id ? {...item, tenureRemaining: Number(e.target.value)} : item)})} className="w-full bg-white/5 border border-white/5 rounded-xl px-4 py-3 text-[10px] font-black text-white outline-none" /></div>
-                          </div>
+                          {endText && (
+                            <div className="mt-5 pt-5 border-t border-gray-200 dark:border-white/5 text-right">
+                               <span className="text-[10px] font-black text-indigo-500 dark:text-indigo-400 uppercase tracking-widest">Active Until: {endText}</span>
+                            </div>
+                          )}
                         </div>
-                        {endText && (
-                          <div className="mt-4 pt-4 border-t border-white/5 text-right">
-                             <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Active Until: {endText}</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-6">
+                  <button onClick={() => deleteCard(editingCard.id)} className="w-full py-5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 text-rose-500 rounded-2xl text-[11px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-3 border border-rose-200 dark:border-rose-500/10"><Trash2 size={16} /> Delete Card</button>
                 </div>
               </div>
-              <button onClick={() => deleteCard(editingCard.id)} className="w-full py-4 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 rounded-2xl text-[9px] font-black uppercase tracking-[0.4em] transition-all flex items-center justify-center gap-2 border border-rose-500/10"><Trash2 size={14} /> Delete Card</button>
+
+              <div className="p-6 md:p-8 bg-gray-50 dark:bg-[#0a0d13] border-t border-gray-200 dark:border-white/5 flex gap-4 shrink-0 transition-colors">
+                <button disabled={isSaving} onClick={() => setEditingCard(null)} className="flex-1 py-5 rounded-2xl font-black text-gray-500 hover:text-gray-900 hover:bg-gray-200 dark:hover:text-white dark:hover:bg-white/5 transition-all uppercase text-[11px] tracking-widest">Discard</button>
+                <button disabled={isSaving} onClick={saveEdit} className="flex-[2] flex items-center justify-center gap-2 py-5 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-lg uppercase text-[11px] tracking-widest">{isSaving ? <Loader2 size={16} className="animate-spin" /> : 'Synchronize Settings'}</button>
+              </div>
             </div>
-            <div className="p-8 bg-black/50 border-t border-white/5 flex gap-4">
-              <button disabled={isSaving} onClick={() => setEditingCard(null)} className="flex-1 py-4 rounded-2xl font-black text-gray-500 hover:text-white transition-all uppercase text-[9px] tracking-widest">Discard</button>
-              <button disabled={isSaving} onClick={saveEdit} className="flex-[2] flex items-center justify-center gap-2 py-4 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-lg uppercase text-[9px] tracking-widest">{isSaving ? <Loader2 size={14} className="animate-spin" /> : 'Synchronize'}</button>
+
+            {/* Right Side: Card Activity */}
+            <div className="flex flex-col w-full md:w-1/2 bg-gray-100 dark:bg-[#05070a]/50 relative z-0 transition-colors">
+              <div className="p-6 md:p-8 border-b border-gray-200 dark:border-white/5 flex justify-between items-center shrink-0">
+                <div>
+                  <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase tracking-tighter flex items-center gap-3"><RefreshCcw size={24} className="text-indigo-500"/> Transactions</h3>
+                  <p className="text-xs font-black text-gray-500 uppercase mt-1 tracking-widest leading-none">Ending in {editingCard.last4}</p>
+                </div>
+                <div className="flex items-center gap-4">
+                  <select
+                    value={cardTxFilter}
+                    onChange={(e) => setCardTxFilter(e.target.value)}
+                    className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white text-[10px] font-black uppercase tracking-widest rounded-xl px-4 py-3 outline-none"
+                  >
+                    <option value="year">This Year</option>
+                    <option value="statement">Current Statement</option>
+                    <option value="all">All Time</option>
+                  </select>
+                  {/* Desktop close button */}
+                  <button onClick={() => setEditingCard(null)} className="hidden md:block p-3 bg-gray-200 dark:bg-white/5 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all"><X size={20}/></button>
+                </div>
+              </div>
+
+              <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
+                <div className="space-y-4">
+                  {(() => {
+                    const cardTxs = transactions.filter(tx => tx.card === editingCard.last4);
+                    let filteredTxs = cardTxs;
+
+                    const now = new Date();
+                    if (cardTxFilter === 'year') {
+                       filteredTxs = cardTxs.filter(tx => new Date(tx.date).getFullYear() === now.getFullYear());
+                    } else if (cardTxFilter === 'statement') {
+                       // Calculate statement start and end dates
+                       const stmtDay = editingCard.stmtDate || 1;
+                       let cycleStart = new Date(now.getFullYear(), now.getMonth(), stmtDay);
+                       if (now.getDate() < stmtDay) {
+                         cycleStart.setMonth(cycleStart.getMonth() - 1);
+                       }
+                       cycleStart.setHours(0, 0, 0, 0);
+
+                       let cycleEnd = new Date(cycleStart);
+                       cycleEnd.setMonth(cycleEnd.getMonth() + 1);
+                       cycleEnd.setHours(23, 59, 59, 999);
+
+                       filteredTxs = cardTxs.filter(tx => {
+                         const d = new Date(tx.date);
+                         return d >= cycleStart && d < cycleEnd;
+                       });
+                    }
+
+                    if (filteredTxs.length === 0) {
+                      return <div className="text-center py-20 text-gray-400 dark:text-gray-500 text-sm font-black uppercase tracking-widest">No matching transactions found</div>;
+                    }
+
+                    return filteredTxs.map((tx, idx) => {
+                      const isCredit = tx.amount < 0;
+                      const d = new Date(tx.date);
+                      const formattedDate = !isNaN(d) ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Unknown Date';
+
+                      return (
+                        <div key={idx} onClick={() => {setEditingTransaction(tx); setEditingCard(null);}} className="flex justify-between items-center p-5 rounded-2xl bg-white dark:bg-white/[0.02] hover:bg-gray-50 dark:hover:bg-white/[0.05] border border-gray-200 dark:border-white/5 group cursor-pointer transition-colors shadow-sm">
+                          <div className="flex gap-4 items-center overflow-hidden flex-1">
+                            <div className="overflow-hidden flex-1">
+                              <div className="font-black text-gray-900 dark:text-white text-base truncate group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors uppercase tracking-tight">{tx.merchant}</div>
+                              <div className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase mt-1 tracking-widest">{formattedDate}</div>
+                            </div>
+                          </div>
+                          <div className={`font-black text-lg shrink-0 ml-4 ${isCredit ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500'} tracking-tighter`}>{isCredit ? '+' : '-'}{formatInr(Math.abs(tx.amount))}</div>
+                        </div>
+                      );
+                    });
+                  })()}
+                </div>
+              </div>
             </div>
+
           </div>
         </div>
       )}
 
       {editingTransaction && (
-        <div className="fixed inset-0 bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-[#0c1017] border border-white/10 rounded-[3rem] w-full max-w-lg shadow-2xl my-auto flex flex-col transition-all">
-            <div className="p-8 border-b border-white/5 flex justify-between items-center">
-              <div><h3 className="text-xl font-black text-white uppercase tracking-tighter">Edit Transaction</h3><p className="text-[9px] font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Manual Override</p></div>
-              <button onClick={() => setEditingTransaction(null)} className="p-3 bg-white/5 rounded-xl text-gray-500 hover:text-white transition-all"><X size={20}/></button>
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/95 backdrop-blur-2xl z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-[#0c1017] border border-gray-200 dark:border-white/10 rounded-[3rem] overflow-hidden w-full max-w-lg shadow-2xl my-auto flex flex-col transition-all">
+            <div className="p-8 border-b border-gray-100 dark:border-white/5 flex justify-between items-center">
+              <div><h3 className="text-xl font-black text-gray-900 dark:text-white uppercase tracking-tighter">Edit Transaction</h3><p className="text-[9px] font-black text-indigo-500 uppercase mt-1 tracking-widest leading-none">Manual Override</p></div>
+              <button onClick={() => setEditingTransaction(null)} className="p-3 bg-gray-100 dark:bg-white/5 rounded-xl text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all"><X size={20}/></button>
             </div>
             <div className="p-8 space-y-6">
               <div>
-                <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Merchant / Description</label>
-                <input value={editTxForm.merchant} onChange={(e) => setEditTxForm({...editTxForm, merchant: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none uppercase text-xs" />
+                <label className="block text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase mb-3 tracking-widest">Merchant / Description</label>
+                <input value={editTxForm.merchant} onChange={(e) => setEditTxForm({...editTxForm, merchant: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none uppercase text-xs" />
               </div>
               <div className="grid grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Amount</label>
-                  <input type="number" value={editTxForm.amount} onChange={(e) => setEditTxForm({...editTxForm, amount: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" />
+                  <label className="block text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase mb-3 tracking-widest">Amount</label>
+                  <input type="number" value={editTxForm.amount} onChange={(e) => setEditTxForm({...editTxForm, amount: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none text-xs" />
                 </div>
                 <div>
-                  <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Card Ending</label>
-                  <input value={editTxForm.card} onChange={(e) => setEditTxForm({...editTxForm, card: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" maxLength={4} />
+                  <label className="block text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase mb-3 tracking-widest">Card Ending</label>
+                  <input value={editTxForm.card} onChange={(e) => setEditTxForm({...editTxForm, card: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none text-xs" maxLength={4} />
                 </div>
               </div>
               <div>
-                <label className="block text-[9px] font-black text-gray-500 uppercase mb-3 tracking-widest">Date / Time string</label>
-                <input value={editTxForm.date} onChange={(e) => setEditTxForm({...editTxForm, date: e.target.value})} className="w-full bg-white/[0.03] border border-white/5 rounded-xl px-5 py-4 text-white font-black outline-none text-xs" />
+                <label className="block text-[9px] font-black text-gray-400 dark:text-gray-500 uppercase mb-3 tracking-widest">Date / Time string</label>
+                <input value={editTxForm.date} onChange={(e) => setEditTxForm({...editTxForm, date: e.target.value})} className="w-full bg-gray-50 dark:bg-white/[0.03] border border-gray-200 dark:border-white/5 rounded-xl px-5 py-4 text-gray-900 dark:text-white font-black outline-none text-xs" />
               </div>
             </div>
-            <div className="p-8 bg-black/50 border-t border-white/5 flex gap-4">
-              <button onClick={() => setEditingTransaction(null)} className="flex-1 py-4 rounded-2xl font-black text-gray-500 hover:text-white transition-all uppercase text-[9px] tracking-widest">Discard</button>
+            <div className="p-8 bg-gray-50 dark:bg-black/50 border-t border-gray-200 dark:border-white/5 flex gap-4">
+              <button onClick={() => setEditingTransaction(null)} className="flex-1 py-4 rounded-2xl font-black text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all uppercase text-[9px] tracking-widest">Discard</button>
               <button onClick={saveTxEdit} className="flex-[2] py-4 rounded-2xl font-black bg-indigo-600 hover:bg-indigo-700 text-white transition-all shadow-lg uppercase text-[9px] tracking-widest">Update Locally</button>
             </div>
           </div>
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `.custom-scrollbar::-webkit-scrollbar { width: 3px; } .custom-scrollbar::-webkit-scrollbar-track { background: transparent; } .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.05); border-radius: 10px; }`}} />
     </div>
   );
 }
